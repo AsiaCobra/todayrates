@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://myanmarexchangerates.site/sitemap.xml
+
+# Disallow admin routes
+Disallow: /admin
+Disallow: /login
