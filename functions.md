@@ -18,19 +18,21 @@ You can use dummy exchange rate data for testing purposes.
 Refre site: https://24k.5w4n.app/
 
 Supported currencies: https://forex.cbm.gov.mm/api/currencies
-Daily exchange rates: https://forex.cbm.gov.mm/api/latest
+Daily exchange rates: https://forex.cbm.gov.mm/api/latest,https://cdn.moneyconvert.net/api/latest.json
+World gold price: https://api.gold-api.com/price/XAU
 
-THB 
+
+Get THB from: https://forex.cbm.gov.mm/api/latest
 Buy rates: 67.45 * 1.8887 = 127.48 MMK
 Sell rates: 67.45 * 1.9381 = 130.68 MMK
 
 find 1 USD to MMK rates also.
 
-Cross Rate ဖြင့် တွက်ချက်ခြင်း
+THB Cross Rate ဖြင့် တွက်ချက်ခြင်း
 
 1 USD = 2100 MMK (example rate, please verify with actual data)
 
-2100 / 67.45 = 31.13
+2098.68 / 67.45 = 31.11460340993328 
 
 31.13 * 127.48 = 3962.36 MMK (Buy rates for USD to MMK)
 31.13 * 130.68 = 4067.34 MMK (Sell rates for USD to MMK)

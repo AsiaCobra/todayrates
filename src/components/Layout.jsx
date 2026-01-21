@@ -1,153 +1,86 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import BottomNav from './BottomNav'
+import Footer from './Footer'
 
 export default function Layout({ children }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
 
-  const navigation = [
-    { name: 'Today\'s Rates', href: '/' },
-    { name: 'Rate History', href: '/history' },
-    { name: 'Gold History', href: '/gold-history' },
-  ]
+  // Check if we're on a detail/history page (show back button)
+  const isDetailPage = location.pathname.includes('history/') ||
+                       location.pathname === '/login'
 
-  const isActive = (path) => location.pathname === path
-
-  const handleSignOut = async () => {
-    await signOut()
-    setMobileMenuOpen(false)
+  const isAdminPage = location.pathname === '/admin'
+  
+  const handleBack = () => {
+    // If on login page, go to home, otherwise go back in history
+    if (location.pathname === '/login') {
+      navigate('/')
+    } else {
+      navigate(-1)
+    }
   }
 
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between items-center">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <Link to="/" className="text-xl font-bold text-indigo-600">
-                TodayRates
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/50">
+        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            {isDetailPage ? (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="text-sm">Back</span>
+              </button>
+            ) : (
+              <Link to="/" className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg overflow-hidden">
+                  <img src="/logo.jpg" alt="Today Rates" className="w-full h-full object-cover" />
+                </div>
+                <span className="text-gold-gradient font-semibold">Today Rates</span>
               </Link>
-            </div>
+            )}
 
-            {/* Desktop Navigation */}
-            <div className="hidden sm:flex sm:items-center sm:space-x-8">
-              {navigation.map((item) => (
+            <div className="flex items-center gap-3">
+              {/* Live indicator */}
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-gold"></span>
+                Live
+              </div>
+
+              {/* User status */}
+              {user && !isAdminPage && (
                 <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    isActive(item.href)
-                      ? 'text-indigo-600 bg-indigo-50'
-                      : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
-                  }`}
+                  to="/admin"
+                  className="text-xs px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                 >
-                  {item.name}
+                  Admin
                 </Link>
-              ))}
-              {user && (
-                <>
-                  <Link
-                    to="/admin"
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      isActive('/admin')
-                        ? 'text-indigo-600 bg-indigo-50'
-                        : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    Admin
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600"
-                  >
-                    Sign Out
-                  </button>
-                </>
               )}
             </div>
-
-            {/* Mobile menu button */}
-            <div className="sm:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-indigo-600 hover:bg-gray-100"
-              >
-                <span className="sr-only">Open main menu</span>
-                {mobileMenuOpen ? (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-              </button>
-            </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="sm:hidden pb-4">
-              <div className="space-y-1">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-3 py-2 text-base font-medium rounded-md ${
-                      isActive(item.href)
-                        ? 'text-indigo-600 bg-indigo-50'
-                        : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                {user && (
-                  <>
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`block px-3 py-2 text-base font-medium rounded-md ${
-                        isActive('/admin')
-                          ? 'text-indigo-600 bg-indigo-50'
-                          : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      Admin
-                    </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-md"
-                    >
-                      Sign Out
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </nav>
+        </div>
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {children}
+      <main className="pb-safe">
+        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 py-6">
+          {children}
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} TodayRates. Exchange rates for informational purposes only.
-          </p>
-        </div>
-      </footer>
+      <Footer />
+
+      {/* Bottom Navigation - hide on login/admin pages */}
+      {!isAdminPage && location.pathname !== '/login' && <BottomNav />}
     </div>
   )
 }

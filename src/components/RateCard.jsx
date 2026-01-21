@@ -1,32 +1,16 @@
-export default function RateCard({ currency, buyingRate, sellingRate }) {
-  const currencyNames = {
-    USD: 'US Dollar',
-    EUR: 'Euro',
-    SGD: 'Singapore Dollar',
-    THB: 'Thai Baht',
-    CNY: 'Chinese Yuan',
-    MYR: 'Malaysian Ringgit',
-    JPY: 'Japanese Yen',
-  }
+import { getCurrencyMeta } from '../lib/currencies'
 
-  const currencyFlags = {
-    USD: '🇺🇸',
-    EUR: '🇪🇺',
-    SGD: '🇸🇬',
-    THB: '🇹🇭',
-    CNY: '🇨🇳',
-    MYR: '🇲🇾',
-    JPY: '🇯🇵',
-  }
+export default function RateCard({ currency, buyingRate, sellingRate }) {
+  const meta = getCurrencyMeta(currency)
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <span className="text-3xl">{currencyFlags[currency] || '💱'}</span>
+          <span className="text-3xl">{meta.flag}</span>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{currency}</h3>
-            <p className="text-sm text-gray-500">{currencyNames[currency] || currency}</p>
+            <p className="text-sm text-gray-500">{meta.name}</p>
           </div>
         </div>
         <div className="text-right">

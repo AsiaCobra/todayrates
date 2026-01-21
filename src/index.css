@@ -1,5 +1,147 @@
 @import "tailwindcss";
 
+/* React Datepicker Custom Styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  @apply bg-slate-800 border-slate-700 text-slate-100;
+  font-family: inherit;
+}
+
+.react-datepicker__header {
+  @apply bg-slate-900 border-slate-700;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker__day-name {
+  @apply text-slate-300;
+}
+
+.react-datepicker__day {
+  @apply text-slate-200 hover:bg-yellow-500/20;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  @apply bg-yellow-500 text-slate-900;
+}
+
+.react-datepicker__day--today {
+  @apply font-bold text-yellow-400;
+}
+
+.react-datepicker__time-container {
+  @apply border-slate-700;
+}
+
+.react-datepicker__time-list-item {
+  @apply hover:bg-yellow-500/20;
+}
+
+.react-datepicker__time-list-item--selected {
+  @apply bg-yellow-500 text-slate-900;
+}
+
+.react-datepicker__navigation-icon::before {
+  @apply border-slate-400;
+}
+
+:root {
+  --gold-50: #fefce8;
+  --gold-100: #fef9c3;
+  --gold-200: #fef08a;
+  --gold-300: #fde047;
+  --gold-400: #facc15;
+  --gold-500: #eab308;
+  --gold-600: #ca8a04;
+  --gold-700: #a16207;
+  --gold-800: #854d0e;
+  --gold-900: #713f12;
+}
+
 body {
-  @apply bg-gray-50 min-h-screen;
+  @apply bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen text-slate-100;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(234, 179, 8, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(234, 179, 8, 0.5);
+}
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card glass effect */
+.glass-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(234, 179, 8, 0.1);
+}
+
+.glass-card-hover:hover {
+  border-color: rgba(234, 179, 8, 0.3);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.1);
+}
+
+/* Gold border glow */
+.gold-glow {
+  box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
+}
+
+/* Safe area for mobile bottom nav */
+.pb-safe {
+  padding-bottom: max(90px, env(safe-area-inset-bottom) + 90px);
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Number transition */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal animation */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.2s ease-out;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getCurrencyMeta } from '../lib/currencies'
 
 // Format number
 const formatNumber = (num, decimals = 0) => {
@@ -37,13 +38,13 @@ const ChangeBadge = ({ value }) => {
     <span className={`inline-flex items-center text-xs font-medium ${
       isPositive ? 'text-emerald-400' : 'text-rose-400'
     }`}>
-      {isPositive ? '↑' : '↓'} {formatNumber(Math.abs(value), value < 100 ? 2 : 0)}
+      {isPositive ? '↑' : '↓'} {formatNumber(Math.abs(value), value < 10 ? 2 : 0)}
     </span>
   )
 }
 
 // History row
-const HistoryRow = ({ time, price, buyPrice, sellPrice, priceChange, buyChange, sellChange, isWorld }) => (
+const HistoryRow = ({ time, buyRate, sellRate, buyChange, sellChange }) => (
   <div className="glass-card rounded-xl p-4 flex items-center justify-between">
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
@@ -53,33 +54,25 @@ const HistoryRow = ({ time, price, buyPrice, sellPrice, priceChange, buyChange, 
       </div>
       <span className="text-sm font-medium">{time}</span>
     </div>
-    {isWorld ? (
+    <div className="flex gap-6">
       <div className="text-right">
-        <p className="text-xs text-slate-500">Price</p>
-        <p className="font-semibold tabular-nums text-yellow-400">${formatNumber(price, 2)}</p>
-        <ChangeBadge value={priceChange} />
+        <p className="text-xs text-slate-500">Buy</p>
+        <p className="font-semibold tabular-nums text-emerald-400">{formatNumber(buyRate)}</p>
+        <ChangeBadge value={buyChange} />
       </div>
-    ) : (
-      <div className="flex gap-6">
-        <div className="text-right">
-          <p className="text-xs text-slate-500">Buy</p>
-          <p className="font-semibold tabular-nums text-emerald-400">{formatNumber(buyPrice)}</p>
-          <ChangeBadge value={buyChange} />
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-500">Sell</p>
-          <p className="font-semibold tabular-nums text-rose-400">{formatNumber(sellPrice)}</p>
-          <ChangeBadge value={sellChange} />
-        </div>
+      <div className="text-right">
+        <p className="text-xs text-slate-500">Sell</p>
+        <p className="font-semibold tabular-nums text-rose-400">{formatNumber(sellRate)}</p>
+        <ChangeBadge value={sellChange} />
       </div>
-    )}
+    </div>
   </div>
 )
 
-export default function GoldHistory() {
-  const { type } = useParams()
+export default function CurrencyHistory() {
+  const { code } = useParams()
   const [history, setHistory] = useState([])
-  const [latestPrice, setLatestPrice] = useState(null)
+  const [latestRate, setLatestRate] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadingPage, setLoadingPage] = useState(false)
   const [error, setError] = useState(null)
@@ -88,24 +81,14 @@ export default function GoldHistory() {
   const [totalCount, setTotalCount] = useState(0)
 
   const PER_PAGE = parseInt(import.meta.env.VITE_HISTORY_PER_PAGE || '50')
-
-  const goldTypeNames = {
-    world: { name: 'World Gold', subtitle: 'International Price' },
-    '16pae_old': { name: '16 PeYe', subtitle: 'Old System (စနစ်ဟောင်း)' },
-    '15pae_old': { name: '15 PeYe', subtitle: 'Old System (စနစ်ဟောင်း)' },
-    '16pae_new': { name: '16 PeYe', subtitle: 'New System (စနစ်သစ်)' },
-    '15pae_new': { name: '15 PeYe', subtitle: 'New System (စနစ်သစ်)' },
-  }
-
-  const meta = goldTypeNames[type] || { name: type, subtitle: 'Gold Price' }
-  const isWorld = type === 'world'
+  const meta = getCurrencyMeta(code)
 
   useEffect(() => {
-    if (type) {
+    if (code) {
       setPage(1)
       fetchHistory(1)
     }
-  }, [type])
+  }, [code])
 
   const fetchHistory = async (pageNum = page) => {
     try {
@@ -118,9 +101,9 @@ export default function GoldHistory() {
 
       // Get total count
       const { count } = await supabase
-        .from('gold_prices')
+        .from('exchange_rates')
         .select('*', { count: 'exact', head: true })
-        .eq('gold_type', type)
+        .eq('currency_from', code)
 
       setTotalCount(count || 0)
 
@@ -129,9 +112,9 @@ export default function GoldHistory() {
       const to = from + PER_PAGE - 1
 
       const { data, error } = await supabase
-        .from('gold_prices')
+        .from('exchange_rates')
         .select('*')
-        .eq('gold_type', type)
+        .eq('currency_from', code)
         .order('created_at', { ascending: false })
         .range(from, to)
 
@@ -141,29 +124,28 @@ export default function GoldHistory() {
 
       if (data && data.length > 0) {
         if (pageNum === 1) {
-          setLatestPrice(data[0])
+          setLatestRate(data[0])
         }
 
         // Calculate changes
-        const withChanges = data.map((price, index) => {
-          const prevPrice = data[index + 1]
+        const withChanges = data.map((rate, index) => {
+          const prevRate = data[index + 1]
           return {
-            ...price,
-            priceChange: prevPrice && price.price ? price.price - prevPrice.price : 0,
-            buyChange: prevPrice && price.buying_price ? price.buying_price - prevPrice.buying_price : 0,
-            sellChange: prevPrice && price.selling_price ? price.selling_price - prevPrice.selling_price : 0,
+            ...rate,
+            buyChange: prevRate ? rate.buying_rate - prevRate.buying_rate : 0,
+            sellChange: prevRate ? rate.selling_rate - prevRate.selling_rate : 0,
           }
         })
 
         // Group by date
-        const grouped = withChanges.reduce((acc, price) => {
-          const date = price.date
+        const grouped = withChanges.reduce((acc, rate) => {
+          const date = rate.date
           if (!acc[date]) acc[date] = []
-          acc[date].push(price)
+          acc[date].push(rate)
           return acc
         }, {})
 
-        setHistory(Object.entries(grouped).map(([date, prices]) => ({ date, prices })))
+        setHistory(Object.entries(grouped).map(([date, rates]) => ({ date, rates })))
       } else {
         setHistory([])
       }
@@ -203,49 +185,39 @@ export default function GoldHistory() {
 
   return (
     <div className="space-y-6">
-      {/* Gold Header */}
+      {/* Currency Header */}
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-amber-600/20 flex items-center justify-center">
-          <svg className="w-8 h-8 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10" />
-          </svg>
+        <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-2xl">
+          {meta.flag}
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{meta.name}</h1>
-          <p className="text-sm text-slate-500">{meta.subtitle}</p>
+          <h1 className="text-2xl font-bold">{code}</h1>
+          <p className="text-sm text-slate-500">{meta.name}</p>
         </div>
       </div>
 
-      {/* Latest Price Card */}
-      {latestPrice && (
+      {/* Latest Rate Card */}
+      {latestRate && (
         <div className="glass-card rounded-2xl p-5 gold-glow">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-slate-400">Current Price</span>
+            <span className="text-sm text-slate-400">Current Rate</span>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-gold"></span>
               <span className="text-xs text-emerald-400">Live</span>
             </div>
           </div>
-          {isWorld ? (
-            <div className="text-center p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-              <p className="text-xs text-yellow-400 mb-1">Per Ounce</p>
-              <p className="text-2xl font-bold tabular-nums text-gold-gradient">${formatNumber(latestPrice.price, 2)}</p>
-              <p className="text-xs text-slate-500 mt-1">USD</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <p className="text-xs text-emerald-400 mb-1">Buy Rate</p>
+              <p className="text-2xl font-bold tabular-nums">{formatNumber(latestRate.buying_rate)}</p>
+              <p className="text-xs text-slate-500 mt-1">MMK</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <p className="text-xs text-emerald-400 mb-1">Buy Price</p>
-                <p className="text-2xl font-bold tabular-nums">{formatNumber(latestPrice.buying_price)}</p>
-                <p className="text-xs text-slate-500 mt-1">MMK per Kyatthar</p>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                <p className="text-xs text-rose-400 mb-1">Sell Price</p>
-                <p className="text-2xl font-bold tabular-nums">{formatNumber(latestPrice.selling_price)}</p>
-                <p className="text-xs text-slate-500 mt-1">MMK per Kyatthar</p>
-              </div>
+            <div className="text-center p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <p className="text-xs text-rose-400 mb-1">Sell Rate</p>
+              <p className="text-2xl font-bold tabular-nums">{formatNumber(latestRate.selling_rate)}</p>
+              <p className="text-xs text-slate-500 mt-1">MMK</p>
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -253,7 +225,7 @@ export default function GoldHistory() {
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
           <span className="w-1 h-4 bg-yellow-500 rounded"></span>
-          Price History
+          Rate History
         </h3>
 
         {history.length > 0 ? (
@@ -269,21 +241,18 @@ export default function GoldHistory() {
             )}
 
             <div className={`space-y-6 ${loadingPage ? 'opacity-50 pointer-events-none' : ''}`}>
-              {history.map(({ date, prices }) => (
+              {history.map(({ date, rates }) => (
                 <div key={date}>
                   <p className="text-sm font-medium text-slate-300 mb-3">{formatDate(date)}</p>
                   <div className="space-y-2">
-                    {prices.map((price) => (
+                    {rates.map((rate) => (
                       <HistoryRow
-                        key={price.id}
-                        time={formatTime(price.created_at)}
-                        price={price.price}
-                        buyPrice={price.buying_price}
-                        sellPrice={price.selling_price}
-                        priceChange={price.priceChange}
-                        buyChange={price.buyChange}
-                        sellChange={price.sellChange}
-                        isWorld={isWorld}
+                        key={rate.id}
+                        time={formatTime(rate.created_at)}
+                        buyRate={rate.buying_rate}
+                        sellRate={rate.selling_rate}
+                        buyChange={rate.buyChange}
+                        sellChange={rate.sellChange}
                       />
                     ))}
                   </div>

@@ -1,226 +1,313 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import RateCard from '../components/RateCard'
-import GoldCard from '../components/GoldCard'
-// import FooterGuide from '../components/FooterGuide'
+import { getCurrencyMeta } from '../lib/currencies'
+import SEO from '../components/SEO'
+
+// Format number with commas
+const formatNumber = (num, decimals = 0) => {
+  if (!num) return '0'
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(num)
+}
+
+// Change badge component
+const ChangeBadge = ({ value }) => {
+  if (!value || value === 0) return null
+  const isPositive = value > 0
+  return (
+    <span className={`inline-flex items-center text-xs font-medium ${
+      isPositive ? 'text-emerald-400' : 'text-rose-400'
+    }`}>
+      {isPositive ? '↑' : '↓'} {formatNumber(Math.abs(value), value < 10 ? 2 : 0)}
+    </span>
+  )
+}
+
+// Featured rate card
+const FeaturedCard = ({ title, subtitle, value, unit, change, icon, gradient }) => (
+  <div className={`glass-card glass-card-hover rounded-2xl p-5 transition-all duration-300 ${gradient}`}>
+    <div className="flex items-start justify-between">
+      <div>
+        <p className="text-slate-400 text-sm">{subtitle}</p>
+        <h3 className="text-lg font-semibold mt-1">{title}</h3>
+      </div>
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-600/20 flex items-center justify-center text-yellow-400">
+        {icon}
+      </div>
+    </div>
+    <div className="mt-4">
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold tabular-nums">{value}</span>
+        <span className="text-slate-400 text-sm">{unit}</span>
+      </div>
+      <div className="mt-1">
+        <ChangeBadge value={change} />
+      </div>
+    </div>
+  </div>
+)
+
+// Quick rate row
+const QuickRateRow = ({ code, name, flag, buyRate, sellRate, change }) => (
+  <Link
+    to={`/currency-history/${code}`}
+    className="flex items-center justify-between py-3 border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 -mx-4 px-4 transition-colors"
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-lg">
+        {flag}
+      </div>
+      <div>
+        <p className="font-medium text-sm">{code}</p>
+        <p className="text-xs text-slate-500">{name}</p>
+      </div>
+    </div>
+    <div className="text-right">
+      <div className="space-y-0.5">
+        <p className="text-xs text-slate-500">Buy: <span className="font-semibold text-slate-300 tabular-nums">{formatNumber(buyRate)}</span></p>
+        <p className="text-xs text-slate-500">Sell: <span className="font-semibold text-slate-300 tabular-nums">{formatNumber(sellRate)}</span></p>
+      </div>
+      <div className="mt-1 flex justify-end">
+        <ChangeBadge value={change} />
+      </div>
+    </div>
+  </Link>
+)
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('gold')
-  const [rates, setRates] = useState([])
-  const [goldPrices, setGoldPrices] = useState([])
+  const [data, setData] = useState({ rates: [], gold: null })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
-    fetchTodayData()
+    fetchData()
   }, [])
 
-  const fetchTodayData = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true)
       const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
 
       const [ratesResult, goldResult] = await Promise.all([
         supabase
           .from('exchange_rates')
           .select('*')
-          .eq('date', today)
-          .order('currency_from', { ascending: true }),
+          .in('date', [today, yesterday])
+          .order('created_at', { ascending: false }),
         supabase
           .from('gold_prices')
           .select('*')
-          .eq('date', today)
-          .order('gold_type', { ascending: true })
+          .in('date', [today, yesterday])
+          .order('created_at', { ascending: false }),
       ])
 
-      if (ratesResult.error) throw ratesResult.error
-      if (goldResult.error) throw goldResult.error
+      const todayRates = ratesResult.data?.filter(r => r.date === today) || []
+      const yesterdayRates = ratesResult.data?.filter(r => r.date === yesterday) || []
+      const todayGold = goldResult.data?.filter(g => g.date === today) || []
+      const yesterdayGold = goldResult.data?.filter(g => g.date === yesterday) || []
 
-      setRates(ratesResult.data || [])
-      setGoldPrices(goldResult.data || [])
+      // Get only the latest rate for each currency (deduplicate by currency_from)
+      const latestRatesMap = new Map()
+      todayRates.forEach(rate => {
+        if (!latestRatesMap.has(rate.currency_from)) {
+          latestRatesMap.set(rate.currency_from, rate)
+        }
+      })
+      const latestTodayRates = Array.from(latestRatesMap.values())
+      
+      // Get latest yesterday rates for comparison
+      const latestYesterdayMap = new Map()
+      yesterdayRates.forEach(rate => {
+        if (!latestYesterdayMap.has(rate.currency_from)) {
+          latestYesterdayMap.set(rate.currency_from, rate)
+        }
+      })
+
+      // Calculate changes for rates
+      const ratesWithChanges = latestTodayRates.map(rate => {
+        const prev = latestYesterdayMap.get(rate.currency_from)
+        return {
+          ...rate,
+          buyChange: prev ? rate.buying_rate - prev.buying_rate : 0,
+        }
+      })
+
+      // Get world gold with change
+      const worldGold = todayGold.find(g => g.gold_type === 'world')
+      const prevWorldGold = yesterdayGold.find(g => g.gold_type === 'world')
+
+      setData({
+        rates: ratesWithChanges,
+        gold: worldGold ? {
+          ...worldGold,
+          priceChange: prevWorldGold ? worldGold.price - prevWorldGold.price : 0,
+        } : null,
+      })
+
+      if (todayRates.length > 0 || todayGold.length > 0) {
+        setLastUpdated(todayRates[0]?.created_at || todayGold[0]?.created_at)
+      }
     } catch (err) {
-      setError(err.message)
+      console.error('Error fetching data:', err)
     } finally {
       setLoading(false)
     }
   }
 
+  const currencyNames = {
+    USD: 'US Dollar',
+    EUR: 'Euro',
+    SGD: 'Singapore Dollar',
+    THB: 'Thai Baht',
+    CNY: 'Chinese Yuan',
+    MYR: 'Malaysian Ringgit',
+    JPY: 'Japanese Yen',
+  }
+  
+  // Featured currencies to display on home
+  const featuredCurrencies = ['USD', 'EUR', 'SGD', 'THB', 'CNY', 'MYR', 'JPY']
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 rounded-full border-2 border-yellow-500/30 border-t-yellow-500 animate-spin"></div>
+        <p className="text-slate-400 text-sm">Loading rates...</p>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
-          <p className="text-red-600">Error loading rates: {error}</p>
-          <button
-            onClick={fetchTodayData}
-            className="mt-2 text-sm text-indigo-600 hover:text-indigo-800"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Separate gold types
-  const worldGold = goldPrices.find(g => g.gold_type === 'world')
-  const oldSystemGold = goldPrices.filter(g => g.gold_type.includes('_old'))
-  const newSystemGold = goldPrices.filter(g => g.gold_type.includes('_new'))
+  const usdRate = data.rates.find(r => r.currency_from === 'USD')
 
   return (
-    <div>
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Today's Rates
+    <>
+      <SEO />
+      <div className="space-y-6">
+      {/* Welcome Section */}
+      <div>
+        <h1 className="text-2xl font-bold">
+          Today's <span className="text-gold-gradient">Rates</span>
         </h1>
-        <p className="text-gray-500">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
+        {lastUpdated && (
+          <p className="text-sm text-slate-500 mt-1">
+            Updated {new Date(lastUpdated).toLocaleString('en-US', {
+              month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+            })}
+          </p>
+        )}
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex rounded-lg bg-gray-100 p-1">
-          <button
-            onClick={() => setActiveTab('gold')}
-            className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'gold'
-                ? 'bg-white text-amber-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span className="text-xl mr-2">🪙</span>
-            Gold Prices
-          </button>
-          <button
-            onClick={() => setActiveTab('exchange')}
-            className={`flex items-center px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'exchange'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span className="text-xl mr-2">💱</span>
-            Exchange Rates
-          </button>
-        </div>
+      {/* Featured Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Gold Card */}
+        <FeaturedCard
+          title="Gold"
+          subtitle="World Price"
+          value={data.gold ? `$${formatNumber(data.gold.price, 2)}` : '—'}
+          unit="/oz"
+          change={data.gold?.priceChange}
+          icon={
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          }
+        />
+
+        {/* USD Card */}
+        <FeaturedCard
+          title="USD"
+          subtitle="Exchange Rate"
+          value={usdRate ? formatNumber(usdRate.buying_rate) : '—'}
+          unit="MMK"
+          change={usdRate?.buyChange}
+          icon={
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+          }
+        />
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'gold' && (
-        <div>
-          {goldPrices.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-yellow-700">No gold prices available for today.</p>
-                <p className="text-sm text-yellow-600 mt-2">
-                  Please check back later or view historical prices.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {/* World Gold */}
-              {worldGold && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
-                    World Gold / ကမ္ဘာ့ရွှေဈေး
-                  </h3>
-                  <div className="max-w-md">
-                    <GoldCard
-                      goldType={worldGold.gold_type}
-                      unit={worldGold.unit}
-                      price={worldGold.price}
-                    />
-                  </div>
-                </div>
-              )}
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Link
+          to="/gold"
+          className="glass-card glass-card-hover rounded-xl p-4 flex items-center gap-3 transition-all"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-medium text-sm">Gold Prices</p>
+            <p className="text-xs text-slate-500">World & Myanmar</p>
+          </div>
+        </Link>
 
-              {/* Myanmar Gold - Old System */}
-              {oldSystemGold.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
-                    Old System / စနစ်ဟောင်း
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-                    {oldSystemGold.map((gold) => (
-                      <GoldCard
-                        key={gold.id}
-                        goldType={gold.gold_type}
-                        unit={gold.unit}
-                        buyingPrice={gold.buying_price}
-                        sellingPrice={gold.selling_price}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+        <Link
+          to="/currency"
+          className="glass-card glass-card-hover rounded-xl p-4 flex items-center gap-3 transition-all"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M2 12h4l3-9 6 18 3-9h4" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-medium text-sm">All Currencies</p>
+            <p className="text-xs text-slate-500">View all rates</p>
+          </div>
+        </Link>
+      </div>
 
-              {/* Myanmar Gold - New System */}
-              {newSystemGold.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">
-                    New System / စနစ်သစ်
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-                    {newSystemGold.map((gold) => (
-                      <GoldCard
-                        key={gold.id}
-                        goldType={gold.gold_type}
-                        unit={gold.unit}
-                        buyingPrice={gold.buying_price}
-                        sellingPrice={gold.selling_price}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Currency List */}
+      {data.rates.length > 0 && (
+        <div className="glass-card rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Exchange Rates</h2>
+            <Link to="/currency" className="text-xs text-yellow-400 hover:text-yellow-300">
+              View All →
+            </Link>
+          </div>
+          <div>
+            {data.rates
+              .filter(rate => featuredCurrencies.includes(rate.currency_from))
+              .sort((a, b) => featuredCurrencies.indexOf(a.currency_from) - featuredCurrencies.indexOf(b.currency_from))
+              .map((rate) => {
+                const currency = getCurrencyMeta(rate.currency_from)
+                return (
+                  <QuickRateRow
+                    key={rate.id}
+                    code={rate.currency_from}
+                    name={currency.name}
+                    flag={currency.flag}
+                    buyRate={rate.buying_rate}
+                    sellRate={rate.selling_rate}
+                    change={rate.buyChange}
+                  />
+                )
+              })}
+          </div>
         </div>
       )}
 
-      {activeTab === 'exchange' && (
-        <div>
-          {rates.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-yellow-700">No exchange rates available for today.</p>
-                <p className="text-sm text-yellow-600 mt-2">
-                  Please check back later or view historical rates.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rates.map((rate) => (
-                <RateCard
-                  key={rate.id}
-                  currency={rate.currency_from}
-                  buyingRate={rate.buying_rate}
-                  sellingRate={rate.selling_rate}
-                />
-              ))}
-            </div>
-          )}
+      {/* Empty State */}
+      {!data.gold && data.rates.length === 0 && (
+        <div className="glass-card rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <p className="text-slate-400">No rates available today</p>
+          <p className="text-sm text-slate-500 mt-1">Check back later for updates</p>
         </div>
       )}
-
-      {/* Footer Guide Accordion - Hidden for now */}
-      {/* <FooterGuide /> */}
     </div>
+    </>
   )
 }
