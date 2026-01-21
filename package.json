@@ -11,7 +11,7 @@
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",
     "db:setup": "node scripts/migrate.js && node scripts/seed.js",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build && cp public/404.html dist/404.html",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
