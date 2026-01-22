@@ -114,24 +114,30 @@ export default function Currency() {
 
       const today = new Date().toISOString().split('T')[0]
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      const dayBeforeYesterday = new Date(Date.now() - 172800000).toISOString().split('T')[0]
 
       const { data, error } = await supabase
         .from('exchange_rates')
         .select('*')
-        .in('date', [today, yesterday])
+        .in('date', [today, yesterday, dayBeforeYesterday])
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
       const todayData = data?.filter(d => d.date === today) || []
       const yesterdayData = data?.filter(d => d.date === yesterday) || []
+      const dayBeforeYesterdayData = data?.filter(d => d.date === dayBeforeYesterday) || []
 
-      if (todayData.length > 0) {
-        setLastUpdated(todayData[0].created_at)
+      // If today's data is empty, use yesterday's data
+      const displayData = todayData.length > 0 ? todayData : yesterdayData
+      const isUsingYesterdayData = todayData.length === 0 && yesterdayData.length > 0
+
+      if (displayData.length > 0) {
+        setLastUpdated(displayData[0].created_at)
       }
 
-      // Group by currency code and keep all today's rates
-      const groupedByCurrency = todayData.reduce((acc, rate) => {
+      // Group by currency code and keep all display data rates
+      const groupedByCurrency = displayData.reduce((acc, rate) => {
         if (!acc[rate.currency_from]) {
           acc[rate.currency_from] = []
         }
@@ -144,14 +150,16 @@ export default function Currency() {
         // Sort by time (most recent first)
         rates.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         
-        // Get yesterday's rate for change calculation
-        const yesterdayRate = yesterdayData.find(y => y.currency_from === currencyCode)
+        // Get comparison rate (yesterday or day before yesterday)
+        const compareRate = isUsingYesterdayData
+          ? dayBeforeYesterdayData.find(y => y.currency_from === currencyCode)
+          : yesterdayData.find(y => y.currency_from === currencyCode)
         
         // Add change info to each rate
         const ratesWithChanges = rates.map(rate => ({
           ...rate,
-          buyChange: yesterdayRate ? rate.buying_rate - yesterdayRate.buying_rate : 0,
-          sellChange: yesterdayRate ? rate.selling_rate - yesterdayRate.selling_rate : 0,
+          buyChange: compareRate ? rate.buying_rate - compareRate.buying_rate : 0,
+          sellChange: compareRate ? rate.selling_rate - compareRate.selling_rate : 0,
         }))
 
         return {

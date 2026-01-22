@@ -143,25 +143,31 @@ export default function Gold() {
 
       const today = new Date().toISOString().split('T')[0]
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      const dayBeforeYesterday = new Date(Date.now() - 172800000).toISOString().split('T')[0]
 
       const { data, error } = await supabase
         .from('gold_prices')
         .select('*')
-        .in('date', [today, yesterday])
+        .in('date', [today, yesterday, dayBeforeYesterday])
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
       const todayData = data?.filter(d => d.date === today) || []
       const yesterdayData = data?.filter(d => d.date === yesterday) || []
+      const dayBeforeYesterdayData = data?.filter(d => d.date === dayBeforeYesterday) || []
+
+      // If today's data is empty, use yesterday's data
+      const displayData = todayData.length > 0 ? todayData : yesterdayData
+      const isUsingYesterdayData = todayData.length === 0 && yesterdayData.length > 0
 
       // Group world gold by time
-      const worldGoldEntries = todayData.filter(d => d.gold_type === 'world')
+      const worldGoldEntries = displayData.filter(d => d.gold_type === 'world')
       worldGoldEntries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
       // Group Myanmar gold by gold_type
       const myanmarGoldGrouped = {}
-      todayData.filter(d => d.gold_type !== 'world').forEach(gold => {
+      displayData.filter(d => d.gold_type !== 'world').forEach(gold => {
         if (!myanmarGoldGrouped[gold.gold_type]) {
           myanmarGoldGrouped[gold.gold_type] = []
         }
@@ -173,21 +179,28 @@ export default function Gold() {
         myanmarGoldGrouped[type].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         
         // Add change to each entry
-        const yesterdayItem = yesterdayData.find(d => d.gold_type === type)
+        const compareItem = isUsingYesterdayData
+          ? dayBeforeYesterdayData.find(d => d.gold_type === type)
+          : yesterdayData.find(d => d.gold_type === type)
+        
         myanmarGoldGrouped[type] = myanmarGoldGrouped[type].map(gold => ({
           ...gold,
-          buyChange: yesterdayItem ? gold.buying_price - yesterdayItem.buying_price : 0,
-          sellChange: yesterdayItem ? gold.selling_price - yesterdayItem.selling_price : 0,
+          buyChange: compareItem ? gold.buying_price - compareItem.buying_price : 0,
+          sellChange: compareItem ? gold.selling_price - compareItem.selling_price : 0,
         }))
       })
 
       // Calculate world gold change
-      const worldChange = worldGoldEntries.length > 0 && yesterdayData.find(d => d.gold_type === 'world')
-        ? worldGoldEntries[0].price - yesterdayData.find(d => d.gold_type === 'world').price
+      const compareWorldGold = isUsingYesterdayData
+        ? dayBeforeYesterdayData.find(d => d.gold_type === 'world')
+        : yesterdayData.find(d => d.gold_type === 'world')
+      
+      const worldChange = worldGoldEntries.length > 0 && compareWorldGold
+        ? worldGoldEntries[0].price - compareWorldGold.price
         : 0
 
       setGoldData({
-        lastUpdated: todayData[0]?.created_at || new Date().toISOString(),
+        lastUpdated: displayData[0]?.created_at || new Date().toISOString(),
         world: {
           price: worldGoldEntries[0]?.price || 0,
           change: worldChange,

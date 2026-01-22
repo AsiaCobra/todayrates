@@ -91,24 +91,27 @@ export default function Home() {
       setLoading(true)
       const today = new Date().toISOString().split('T')[0]
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      const dayBeforeYesterday = new Date(Date.now() - 172800000).toISOString().split('T')[0]
 
       const [ratesResult, goldResult] = await Promise.all([
         supabase
           .from('exchange_rates')
           .select('*')
-          .in('date', [today, yesterday])
+          .in('date', [today, yesterday, dayBeforeYesterday])
           .order('created_at', { ascending: false }),
         supabase
           .from('gold_prices')
           .select('*')
-          .in('date', [today, yesterday])
+          .in('date', [today, yesterday, dayBeforeYesterday])
           .order('created_at', { ascending: false }),
       ])
 
       const todayRates = ratesResult.data?.filter(r => r.date === today) || []
       const yesterdayRates = ratesResult.data?.filter(r => r.date === yesterday) || []
+      const dayBeforeYesterdayRates = ratesResult.data?.filter(r => r.date === dayBeforeYesterday) || []
       const todayGold = goldResult.data?.filter(g => g.date === today) || []
       const yesterdayGold = goldResult.data?.filter(g => g.date === yesterday) || []
+      const dayBeforeYesterdayGold = goldResult.data?.filter(g => g.date === dayBeforeYesterday) || []
 
       // Get only the latest rate for each currency (deduplicate by currency_from)
       const latestRatesMap = new Map()
@@ -127,9 +130,23 @@ export default function Home() {
         }
       })
 
+      // If today's data is empty, use yesterday's data
+      const displayRates = latestTodayRates.length > 0 ? latestTodayRates : Array.from(latestYesterdayMap.values())
+      const isUsingYesterdayRates = latestTodayRates.length === 0 && displayRates.length > 0
+
+      // Get comparison data (yesterday or day before yesterday)
+      const latestDayBeforeYesterdayMap = new Map()
+      dayBeforeYesterdayRates.forEach(rate => {
+        if (!latestDayBeforeYesterdayMap.has(rate.currency_from)) {
+          latestDayBeforeYesterdayMap.set(rate.currency_from, rate)
+        }
+      })
+
       // Calculate changes for rates
-      const ratesWithChanges = latestTodayRates.map(rate => {
-        const prev = latestYesterdayMap.get(rate.currency_from)
+      const ratesWithChanges = displayRates.map(rate => {
+        const prev = isUsingYesterdayRates 
+          ? latestDayBeforeYesterdayMap.get(rate.currency_from)
+          : latestYesterdayMap.get(rate.currency_from)
         return {
           ...rate,
           buyChange: prev ? rate.buying_rate - prev.buying_rate : 0,
@@ -139,17 +156,32 @@ export default function Home() {
       // Get world gold with change
       const worldGold = todayGold.find(g => g.gold_type === 'world')
       const prevWorldGold = yesterdayGold.find(g => g.gold_type === 'world')
+      const dayBeforeYesterdayWorldGold = dayBeforeYesterdayGold.find(g => g.gold_type === 'world')
+      
+      // If today's gold is empty, use yesterday's
+      const displayGold = worldGold || prevWorldGold
+      const isUsingYesterdayGold = !worldGold && prevWorldGold
+
+      // Calculate gold change
+      let goldPriceChange = 0
+      if (worldGold && prevWorldGold) {
+        goldPriceChange = worldGold.price - prevWorldGold.price
+      } else if (isUsingYesterdayGold && dayBeforeYesterdayWorldGold) {
+        goldPriceChange = prevWorldGold.price - dayBeforeYesterdayWorldGold.price
+      }
 
       setData({
         rates: ratesWithChanges,
-        gold: worldGold ? {
-          ...worldGold,
-          priceChange: prevWorldGold ? worldGold.price - prevWorldGold.price : 0,
+        gold: displayGold ? {
+          ...displayGold,
+          priceChange: goldPriceChange,
         } : null,
       })
 
       if (todayRates.length > 0 || todayGold.length > 0) {
         setLastUpdated(todayRates[0]?.created_at || todayGold[0]?.created_at)
+      } else if (yesterdayRates.length > 0 || yesterdayGold.length > 0) {
+        setLastUpdated(yesterdayRates[0]?.created_at || yesterdayGold[0]?.created_at)
       }
     } catch (err) {
       console.error('Error fetching data:', err)
