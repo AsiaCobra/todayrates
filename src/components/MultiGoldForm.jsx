@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import GoldTypeCard from './GoldTypeCard'
 
 const GOLD_TYPES = [
@@ -9,22 +9,35 @@ const GOLD_TYPES = [
   { type: '15peye_new', name: '15 PeYe (New)', unit: 'Kyatthar' }
 ]
 
-export default function MultiGoldForm({ onSubmit, onCancel }) {
+export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrice = null }) {
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
   const [prices, setPrices] = useState(() => {
-    // Initialize with all gold types unselected
+    // Initialize with all gold types unselected and empty or calculated values
     const initialPrices = {}
     GOLD_TYPES.forEach(({ type }) => {
       initialPrices[type] = {
         selected: false,
-        price: '',
+        price: type === 'world' && calculatedPrice ? calculatedPrice.toFixed(2) : '',
         buying: '',
         selling: ''
       }
     })
     return initialPrices
   })
+  
+  // Update world gold price when calculatedPrice changes
+  useEffect(() => {
+    if (calculatedPrice) {
+      setPrices(prev => ({
+        ...prev,
+        world: {
+          ...prev.world,
+          price: calculatedPrice.toFixed(2)
+        }
+      }))
+    }
+  }, [calculatedPrice])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 

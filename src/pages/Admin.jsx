@@ -38,6 +38,9 @@ export default function Admin() {
   const [apiPrices, setApiPrices] = useState({ usd: null, gold: null, loading: false })
   const [lastDbPrices, setLastDbPrices] = useState({ usd: null, gold: null })
   const [todayDataExists, setTodayDataExists] = useState({ rates: false, gold: false })
+  const [calculatedRates, setCalculatedRates] = useState(null)
+  const [calculatedGoldPrice, setCalculatedGoldPrice] = useState(null)
+  const [calculatingRates, setCalculatingRates] = useState(false)
   
   // Filter states
   const [rateFilters, setRateFilters] = useState({
@@ -412,6 +415,47 @@ export default function Admin() {
   const handleRateEdit = (rate) => {
     setEditingRate(rate)
     setShowRateForm(true)
+  }
+
+  const handleShowMultiRateForm = async () => {
+    try {
+      setCalculatingRates(true)
+      setError(null)
+      
+      // Calculate rates from API
+      const rates = await generateExchangeRates()
+      
+      // Transform to format expected by MultiRateForm
+      const calculatedData = rates.map(rate => ({
+        code: rate.currency_to,
+        buying: parseFloat(rate.buying_rate),
+        selling: parseFloat(rate.selling_rate)
+      }))
+      
+      setCalculatedRates(calculatedData)
+      setShowMultiRateForm(true)
+    } catch (err) {
+      setError(`Failed to calculate rates: ${err.message}`)
+    } finally {
+      setCalculatingRates(false)
+    }
+  }
+
+  const handleShowMultiGoldForm = async () => {
+    try {
+      setCalculatingRates(true)
+      setError(null)
+      
+      // Calculate gold price from API
+      const goldData = await generateGoldPrice()
+      
+      setCalculatedGoldPrice(parseFloat(goldData.price))
+      setShowMultiGoldForm(true)
+    } catch (err) {
+      setError(`Failed to calculate gold price: ${err.message}`)
+    } finally {
+      setCalculatingRates(false)
+    }
   }
 
   const handleRateDelete = async (id) => {
@@ -932,13 +976,23 @@ export default function Admin() {
                 </button>
                 
                 <button
-                  onClick={() => setShowMultiRateForm(true)}
-                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  onClick={handleShowMultiRateForm}
+                  disabled={calculatingRates}
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                  </svg>
-                  Add Multiple Rates
+                  {calculatingRates ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                      <span>Calculating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                      </svg>
+                      Add Multiple Rates
+                    </>
+                  )}
                 </button>
                 
                 <button
@@ -1035,13 +1089,23 @@ export default function Admin() {
                 </button>
                 
                 <button
-                  onClick={() => setShowMultiGoldForm(true)}
-                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  onClick={handleShowMultiGoldForm}
+                  disabled={calculatingRates}
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                  </svg>
-                  Add Multiple Prices
+                  {calculatingRates ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                      <span>Calculating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                      </svg>
+                      Add Multiple Prices
+                    </>
+                  )}
                 </button>
                 
                 <button
@@ -1197,6 +1261,7 @@ export default function Admin() {
         title="Add Multiple Exchange Rates"
       >
         <MultiRateForm
+          calculatedRates={calculatedRates}
           onSubmit={handleMultiRateSubmit}
           onCancel={() => setShowMultiRateForm(false)}
         />
@@ -1209,6 +1274,7 @@ export default function Admin() {
         title="Add Multiple Gold Prices"
       >
         <MultiGoldForm
+          calculatedPrice={calculatedGoldPrice}
           onSubmit={handleMultiGoldSubmit}
           onCancel={() => setShowMultiGoldForm(false)}
         />

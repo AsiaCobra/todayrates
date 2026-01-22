@@ -1,22 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
 import CurrencyCard from './CurrencyCard'
 
-export default function MultiRateForm({ onSubmit, onCancel }) {
+export default function MultiRateForm({ onSubmit, onCancel, calculatedRates = null }) {
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
   const [rates, setRates] = useState(() => {
-    // Initialize with all currencies unselected
+    // Initialize with all currencies unselected and empty or calculated values
     const initialRates = {}
     CURRENCY_ORDER.forEach(code => {
+      const calculated = calculatedRates?.find(r => r.code === code)
       initialRates[code] = {
         selected: false,
-        buying: '',
-        selling: ''
+        buying: calculated ? calculated.buying.toFixed(2) : '',
+        selling: calculated ? calculated.selling.toFixed(2) : ''
       }
     })
     return initialRates
   })
+  
+  // Update rates when calculatedRates changes (e.g., after fetching API data)
+  useEffect(() => {
+    if (calculatedRates) {
+      setRates(prev => {
+        const updated = { ...prev }
+        calculatedRates.forEach(calc => {
+          if (updated[calc.code]) {
+            updated[calc.code] = {
+              ...updated[calc.code],
+              buying: calc.buying.toFixed(2),
+              selling: calc.selling.toFixed(2)
+            }
+          }
+        })
+        return updated
+      })
+    }
+  }, [calculatedRates])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
