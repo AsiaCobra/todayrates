@@ -507,100 +507,94 @@ export default function Admin() {
       </div>
 
       {/* API Prices Display */}
-      {(activeTab === 'rates' || activeTab === 'gold') && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-          {/* USD Price from API */}
-          {activeTab === 'rates' && (
-            <div className="glass-card rounded-xl p-4 border border-cyan-500/30 bg-cyan-500/5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-cyan-400">USD to MMK (API)</h3>
-                </div>
-                <button
-                  onClick={fetchApiPrices}
-                  disabled={apiPrices.loading}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
-                >
-                  {apiPrices.loading ? '↻' : '🔄'}
-                </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        {/* USD Price from API */}
+        <div className="glass-card rounded-xl p-4 border border-cyan-500/30 bg-cyan-500/5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-              {apiPrices.loading ? (
-                <div className="flex items-center gap-2 text-slate-400">
-                  <div className="w-4 h-4 rounded-full border-2 border-slate-500/30 border-t-cyan-400 animate-spin"></div>
-                  <span className="text-sm">Loading...</span>
-                </div>
-              ) : apiPrices.usd ? (
-                <div>
-                  <p className="text-2xl font-bold text-cyan-400 mb-1">{apiPrices.usd.toFixed(8)}</p>
-                  <p className="text-xs text-slate-500">
-                    {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
-                  </p>
-                  <div className="mt-2 pt-2 border-t border-slate-700">
-                    <p className="text-xs text-slate-400 mb-1">Black Market Rates:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-xs text-emerald-400">Buy: {(apiPrices.usd * 1.8887).toFixed(2)} MMK</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-rose-400">Sell: {(apiPrices.usd * 1.9381).toFixed(2)} MMK</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-rose-400">Failed to fetch USD rate</p>
-              )}
+              <h3 className="font-semibold text-cyan-400">USD to MMK (API)</h3>
             </div>
-          )}
-
-          {/* Gold Price from API */}
-          {activeTab === 'gold' && (
-            <div className="glass-card rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
+            <button
+              onClick={fetchApiPrices}
+              disabled={apiPrices.loading}
+              className="text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+            >
+              {apiPrices.loading ? '↻' : '🔄'}
+            </button>
+          </div>
+          {apiPrices.loading ? (
+            <div className="flex items-center gap-2 text-slate-400">
+              <div className="w-4 h-4 rounded-full border-2 border-slate-500/30 border-t-cyan-400 animate-spin"></div>
+              <span className="text-sm">Loading...</span>
+            </div>
+          ) : apiPrices.usd ? (
+            <div>
+              <p className="text-2xl font-bold text-cyan-400 mb-1">{apiPrices.usd.toFixed(8)}</p>
+              <p className="text-xs text-slate-500">
+                {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
+              </p>
+              <div className="mt-2 pt-2 border-t border-slate-700">
+                <p className="text-xs text-slate-400 mb-1">Black Market Rates:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-xs text-emerald-400">Buy: {(apiPrices.usd * 1.8887).toFixed(2)} MMK</p>
                   </div>
-                  <h3 className="font-semibold text-yellow-400">World Gold Price (API)</h3>
+                  <div>
+                    <p className="text-xs text-rose-400">Sell: {(apiPrices.usd * 1.9381).toFixed(2)} MMK</p>
+                  </div>
                 </div>
-                <button
-                  onClick={fetchApiPrices}
-                  disabled={apiPrices.loading}
-                  className="text-xs text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
-                >
-                  {apiPrices.loading ? '↻' : '🔄'}
-                </button>
               </div>
-              {apiPrices.loading ? (
-                <div className="flex items-center gap-2 text-slate-400">
-                  <div className="w-4 h-4 rounded-full border-2 border-slate-500/30 border-t-yellow-400 animate-spin"></div>
-                  <span className="text-sm">Loading...</span>
-                </div>
-              ) : apiPrices.gold ? (
-                <div>
-                  <p className="text-2xl font-bold text-yellow-400 mb-1">${apiPrices.gold.toFixed(2)}</p>
-                  <p className="text-xs text-slate-500 mb-2">Per troy ounce (oz)</p>
-                  <p className="text-xs text-slate-500">
-                    {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
-                  </p>
-                  <div className="mt-2 pt-2 border-t border-slate-700">
-                    <p className="text-xs text-slate-400">Per gram: ${(apiPrices.gold / 31.1035).toFixed(2)}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-rose-400">Failed to fetch gold price</p>
-              )}
             </div>
+          ) : (
+            <p className="text-sm text-rose-400">Failed to fetch USD rate</p>
           )}
         </div>
-      )}
+
+        {/* Gold Price from API */}
+        <div className="glass-card rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-yellow-400">World Gold Price (API)</h3>
+            </div>
+            <button
+              onClick={fetchApiPrices}
+              disabled={apiPrices.loading}
+              className="text-xs text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
+            >
+              {apiPrices.loading ? '↻' : '🔄'}
+            </button>
+          </div>
+          {apiPrices.loading ? (
+            <div className="flex items-center gap-2 text-slate-400">
+              <div className="w-4 h-4 rounded-full border-2 border-slate-500/30 border-t-yellow-400 animate-spin"></div>
+              <span className="text-sm">Loading...</span>
+            </div>
+          ) : apiPrices.gold ? (
+            <div>
+              <p className="text-2xl font-bold text-yellow-400 mb-1">${apiPrices.gold.toFixed(2)}</p>
+              <p className="text-xs text-slate-500 mb-2">Per troy ounce (oz)</p>
+              <p className="text-xs text-slate-500">
+                {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
+              </p>
+              <div className="mt-2 pt-2 border-t border-slate-700">
+                <p className="text-xs text-slate-400">Per gram: ${(apiPrices.gold / 31.1035).toFixed(2)}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-rose-400">Failed to fetch gold price</p>
+          )}
+        </div>
+      </div>
 
       {/* Success */}
       {generateSuccess && (
