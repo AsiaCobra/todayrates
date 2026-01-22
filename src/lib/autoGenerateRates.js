@@ -62,6 +62,82 @@ const roundRate = (rate) => {
 }
 
 /**
+ * Calculate exchange rates without inserting to database (for preview/forms)
+ */
+export const calculateExchangeRates = async () => {
+  try {
+    // Fetch rates from MoneyConvert API
+    const rates = await fetchMoneyConvertRates()
+    
+    // Get USD rate (MMK per 1 USD from the API)
+    const usdToMmkRate = rates.MMK
+    if (!usdToMmkRate) {
+      throw new Error('MMK rate not found in API response')
+    }
+    
+    // Calculate Myanmar black market rates for USD
+    const { buyRate: mmkBuyRate, sellRate: mmkSellRate } = calculateMMKRates(usdToMmkRate)
+    
+    // Generate rates for all currencies
+    const exchangeRates = []
+    
+    for (const currencyCode of CURRENCY_ORDER) {
+      if (currencyCode === 'MMK') continue // Skip MMK itself
+      
+      let buyRate, sellRate
+      
+      if (currencyCode === 'USD') {
+        // Direct USD to MMK rates
+        buyRate = mmkBuyRate
+        sellRate = mmkSellRate
+      } else {
+        // Get the currency rate from API
+        const currencyRate = rates[currencyCode]
+        if (!currencyRate) {
+          console.warn(`Rate not found for ${currencyCode}, skipping...`)
+          continue
+        }
+        
+        // Calculate rates
+        const calculated = calculateCurrencyToMMK(currencyRate, mmkBuyRate, mmkSellRate)
+        buyRate = calculated.buyRate
+        sellRate = calculated.sellRate
+      }
+      
+      exchangeRates.push({
+        code: currencyCode,
+        buying: roundRate(buyRate),
+        selling: roundRate(sellRate)
+      })
+    }
+    
+    return exchangeRates
+  } catch (error) {
+    console.error('Error calculating exchange rates:', error)
+    throw error
+  }
+}
+
+/**
+ * Calculate gold price without inserting to database (for preview/forms)
+ */
+export const calculateGoldPrice = async () => {
+  try {
+    // Fetch gold price from API
+    const goldPrice = await fetchGoldPrice()
+    
+    if (!goldPrice) {
+      throw new Error('Failed to fetch gold price')
+    }
+    
+    return goldPrice
+  } catch (error) {
+    console.error('Error calculating gold price:', error)
+    throw error
+  }
+}
+
+/**
  * Generate exchange rates for all currencies
  */
 export const generateExchangeRates = async (userId, date = null) => {

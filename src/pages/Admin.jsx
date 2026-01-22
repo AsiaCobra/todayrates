@@ -11,7 +11,7 @@ import Modal from '../components/Modal'
 import MultiRateForm from '../components/MultiRateForm'
 import MultiGoldForm from '../components/MultiGoldForm'
 import { CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
-import { generateAllRates, generateExchangeRates, generateGoldPrice } from '../lib/autoGenerateRates'
+import { generateAllRates, generateExchangeRates, generateGoldPrice, calculateExchangeRates, calculateGoldPrice } from '../lib/autoGenerateRates'
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('rates')
@@ -422,15 +422,8 @@ export default function Admin() {
       setCalculatingRates(true)
       setError(null)
       
-      // Calculate rates from API
-      const rates = await generateExchangeRates()
-      
-      // Transform to format expected by MultiRateForm
-      const calculatedData = rates.map(rate => ({
-        code: rate.currency_to,
-        buying: parseFloat(rate.buying_rate),
-        selling: parseFloat(rate.selling_rate)
-      }))
+      // Calculate rates from API (returns array directly)
+      const calculatedData = await calculateExchangeRates()
       
       setCalculatedRates(calculatedData)
       setShowMultiRateForm(true)
@@ -446,10 +439,10 @@ export default function Admin() {
       setCalculatingRates(true)
       setError(null)
       
-      // Calculate gold price from API
-      const goldData = await generateGoldPrice()
+      // Calculate gold price from API (returns price directly)
+      const goldPrice = await calculateGoldPrice()
       
-      setCalculatedGoldPrice(parseFloat(goldData.price))
+      setCalculatedGoldPrice(goldPrice)
       setShowMultiGoldForm(true)
     } catch (err) {
       setError(`Failed to calculate gold price: ${err.message}`)
