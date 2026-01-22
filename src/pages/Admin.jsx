@@ -9,6 +9,7 @@ import GoldForm from '../components/GoldForm'
 import GoldTable from '../components/GoldTable'
 import Modal from '../components/Modal'
 import { CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
+import { generateAllRates, generateExchangeRates, generateGoldPrice } from '../lib/autoGenerateRates'
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('rates')
@@ -28,6 +29,8 @@ export default function Admin() {
   const [hasMoreGold, setHasMoreGold] = useState(false)
   const [ratesPage, setRatesPage] = useState(1)
   const [goldPage, setGoldPage] = useState(1)
+  const [generating, setGenerating] = useState(false)
+  const [generateSuccess, setGenerateSuccess] = useState(null)
   
   // Filter states
   const [rateFilters, setRateFilters] = useState({
@@ -376,6 +379,36 @@ export default function Admin() {
     navigate('/login')
   }
 
+  const handleAutoGenerate = async () => {
+    if (!window.confirm('Generate today\'s exchange rates and gold price automatically?\n\nThis will fetch current rates from external APIs and create new entries.')) {
+      return
+    }
+
+    try {
+      setGenerating(true)
+      setError(null)
+      setGenerateSuccess(null)
+
+      const result = await generateAllRates(user.id)
+
+      if (result.rates.success && result.gold.success) {
+        setGenerateSuccess(`Successfully generated ${result.rates.count} exchange rates and gold price!`)
+        fetchData() // Refresh data
+      } else {
+        const errors = []
+        if (!result.rates.success) errors.push(`Rates: ${result.rates.error}`)
+        if (!result.gold.success) errors.push(`Gold: ${result.gold.error}`)
+        throw new Error(errors.join('; '))
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGenerating(false)
+      // Clear success message after 5 seconds
+      setTimeout(() => setGenerateSuccess(null), 5000)
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -435,6 +468,13 @@ export default function Admin() {
         </button>
       </div>
 
+      {/* Success */}
+      {generateSuccess && (
+        <div className="glass-card rounded-xl p-4 mb-6 border border-emerald-500/30 bg-emerald-500/10">
+          <p className="text-sm text-emerald-400">{generateSuccess}</p>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="glass-card rounded-xl p-4 mb-6 border border-rose-500/30 bg-rose-500/10">
@@ -452,6 +492,37 @@ export default function Admin() {
           {/* Exchange Rates Tab */}
           {activeTab === 'rates' && (
             <div className="space-y-4">
+              {/* Auto-Generate Section */}
+              <div className="glass-card rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-purple-400 mb-1">Auto-Generate Rates</h3>
+                    <p className="text-xs text-slate-400">
+                      Fetch current rates from external APIs and generate today's exchange rates
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAutoGenerate}
+                    disabled={generating}
+                    className="py-2.5 px-4 rounded-lg font-medium text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {generating ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Generate Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => { setEditingRate(null); setShowRateForm(true); }}
@@ -514,6 +585,37 @@ export default function Admin() {
           {/* Gold Prices Tab */}
           {activeTab === 'gold' && (
             <div className="space-y-4">
+              {/* Auto-Generate Section */}
+              <div className="glass-card rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-purple-400 mb-1">Auto-Generate Gold Price</h3>
+                    <p className="text-xs text-slate-400">
+                      Fetch current world gold price (XAU) from external API
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAutoGenerate}
+                    disabled={generating}
+                    className="py-2.5 px-4 rounded-lg font-medium text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {generating ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Generate Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => { setEditingGold(null); setShowGoldForm(true); }}

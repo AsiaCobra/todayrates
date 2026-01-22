@@ -18,11 +18,12 @@ You can use dummy exchange rate data for testing purposes.
 Refre site: https://24k.5w4n.app/
 
 Supported currencies: https://forex.cbm.gov.mm/api/currencies
-Daily exchange rates: https://forex.cbm.gov.mm/api/latest,https://cdn.moneyconvert.net/api/latest.json
+Daily exchange rates: https://forex.cbm.gov.mm/api/latest, 
+https://cdn.moneyconvert.net/api/latest.json
 World gold price: https://api.gold-api.com/price/XAU
 
 
-Get THB from: https://forex.cbm.gov.mm/api/latest
+Get THB from: https://cdn.moneyconvert.net/api/latest.json
 Buy rates: 67.45 * 1.8887 = 127.48 MMK
 Sell rates: 67.45 * 1.9381 = 130.68 MMK
 
@@ -52,3 +53,31 @@ UI/003. currency and gold history.jpg is the history page for both currency and 
 Supported currencies: https://forex.cbm.gov.mm/api/currencies
 
 I want to add date and time picker when adding data.
+
+I want a function to generate daily exchange rates and world gold price automatically at midnight or from admin panel.
+
+here is the logic to calculate exchange rates:
+
+Get MMK Pric (2100.08320023) from: https://cdn.moneyconvert.net/api/latest.json
+Black maret buy multiplier: 1.8887
+Black market sell multiplier: 1.9381
+
+For USD to MMK rates:
+Buy rates: 2100.08320023 * 1.8887 = 3962.36 MMK
+Sell rates: 2100.08320023 * 1.9381 = 4070.1712503657627 MMK
+
+For THB to MMK rates:
+get THB (31.4016824) from: https://cdn.moneyconvert.net/api/latest.json
+
+Buy rates: (Mynamr buy rates) 3962.36 / 31.4016824 = 126.19 MMK
+Sell rates: (Myanmar sell rates) 4070.1712503657627 / 31.4016824 = 129.68 MMK
+
+For EUR to MMK rates:
+get EUR (0.85557888) from: https://cdn.moneyconvert.net/api/latest.json
+
+Buy rates: 3962.36 / 0.85557888 = 4631.96 MMK
+Sell rates: 4070.1712503657627 / 0.85557888 = 4758.76 MMK
+
+
+For World Gold Price:
+Get World gold price (XAU) from: https://api.gold-api.com/price/XAU
