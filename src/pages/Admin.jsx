@@ -31,6 +31,7 @@ export default function Admin() {
   const [goldPage, setGoldPage] = useState(1)
   const [generating, setGenerating] = useState(false)
   const [generateSuccess, setGenerateSuccess] = useState(null)
+  const [apiPrices, setApiPrices] = useState({ usd: null, gold: null, loading: false })
   
   // Filter states
   const [rateFilters, setRateFilters] = useState({
