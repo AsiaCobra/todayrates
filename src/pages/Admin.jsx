@@ -27,8 +27,8 @@ export default function Admin() {
   const [showGoldFilters, setShowGoldFilters] = useState(false)
   const [hasMoreRates, setHasMoreRates] = useState(false)
   const [hasMoreGold, setHasMoreGold] = useState(false)
-  const [ratesPage, setRatesPage] = useState(1)
-  const [goldPage, setGoldPage] = useState(1)
+  const [ratesCurrentDate, setRatesCurrentDate] = useState(null)
+  const [goldCurrentDate, setGoldCurrentDate] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [generateSuccess, setGenerateSuccess] = useState(null)
   const [apiPrices, setApiPrices] = useState({ usd: null, gold: null, loading: false })
@@ -198,9 +198,20 @@ export default function Admin() {
     try {
       setLoading(true)
       
+      const today = new Date().toISOString().split('T')[0]
+      
+      // Get today's data (all records for today)
       const [ratesResult, goldResult, contactsResult] = await Promise.all([
-        buildRatesQuery().range(0, PER_PAGE - 1),
-        buildGoldQuery().range(0, PER_PAGE - 1),
+        supabase
+          .from('exchange_rates')
+          .select('*')
+          .eq('date', today)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('gold_prices')
+          .select('*')
+          .eq('date', today)
+          .order('created_at', { ascending: false }),
         supabase
           .from('contacts')
           .select('*')
@@ -216,12 +227,28 @@ export default function Admin() {
       setGoldPrices(goldResult.data || [])
       setContacts(contactsResult.data || [])
       
-      // Check if there's more data
-      setHasMoreRates(ratesResult.data?.length === PER_PAGE)
-      setHasMoreGold(goldResult.data?.length === PER_PAGE)
+      // Set current date for pagination
+      setRatesCurrentDate(today)
+      setGoldCurrentDate(today)
       
-      setRatesPage(1)
-      setGoldPage(1)
+      // Check if there's more data (check if previous day has data)
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      
+      const [prevRatesCheck, prevGoldCheck] = await Promise.all([
+        supabase
+          .from('exchange_rates')
+          .select('id')
+          .eq('date', yesterday)
+          .limit(1),
+        supabase
+          .from('gold_prices')
+          .select('id')
+          .eq('date', yesterday)
+          .limit(1)
+      ])
+      
+      setHasMoreRates((prevRatesCheck.data?.length || 0) > 0)
+      setHasMoreGold((prevGoldCheck.data?.length || 0) > 0)
       
       // Fetch last DB prices for comparison
       await fetchLastDbPrices()
@@ -272,17 +299,39 @@ export default function Admin() {
   const loadMoreRates = async () => {
     try {
       setLoadingMore(true)
-      const nextPage = ratesPage + 1
-      const from = nextPage * PER_PAGE
-      const to = from + PER_PAGE - 1
+      
+      // Get previous day
+      const currentDate = new Date(ratesCurrentDate)
+      currentDate.setDate(currentDate.getDate() - 1)
+      const previousDate = currentDate.toISOString().split('T')[0]
 
-      const { data, error } = await buildRatesQuery().range(from, to)
+      const { data, error } = await supabase
+        .from('exchange_rates')
+        .select('*')
+        .eq('date', previousDate)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      setRates([...rates, ...(data || [])])
-      setHasMoreRates(data?.length === PER_PAGE)
-      setRatesPage(nextPage)
+      if (data && data.length > 0) {
+        setRates([...rates, ...data])
+        setRatesCurrentDate(previousDate)
+        
+        // Check if there's another previous day
+        const dayBefore = new Date(currentDate)
+        dayBefore.setDate(dayBefore.getDate() - 1)
+        const dayBeforeStr = dayBefore.toISOString().split('T')[0]
+        
+        const checkPrev = await supabase
+          .from('exchange_rates')
+          .select('id')
+          .eq('date', dayBeforeStr)
+          .limit(1)
+        
+        setHasMoreRates((checkPrev.data?.length || 0) > 0)
+      } else {
+        setHasMoreRates(false)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -293,17 +342,39 @@ export default function Admin() {
   const loadMoreGold = async () => {
     try {
       setLoadingMore(true)
-      const nextPage = goldPage + 1
-      const from = nextPage * PER_PAGE
-      const to = from + PER_PAGE - 1
+      
+      // Get previous day
+      const currentDate = new Date(goldCurrentDate)
+      currentDate.setDate(currentDate.getDate() - 1)
+      const previousDate = currentDate.toISOString().split('T')[0]
 
-      const { data, error } = await buildGoldQuery().range(from, to)
+      const { data, error } = await supabase
+        .from('gold_prices')
+        .select('*')
+        .eq('date', previousDate)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      setGoldPrices([...goldPrices, ...(data || [])])
-      setHasMoreGold(data?.length === PER_PAGE)
-      setGoldPage(nextPage)
+      if (data && data.length > 0) {
+        setGoldPrices([...goldPrices, ...data])
+        setGoldCurrentDate(previousDate)
+        
+        // Check if there's another previous day
+        const dayBefore = new Date(currentDate)
+        dayBefore.setDate(dayBefore.getDate() - 1)
+        const dayBeforeStr = dayBefore.toISOString().split('T')[0]
+        
+        const checkPrev = await supabase
+          .from('gold_prices')
+          .select('id')
+          .eq('date', dayBeforeStr)
+          .limit(1)
+        
+        setHasMoreGold((checkPrev.data?.length || 0) > 0)
+      } else {
+        setHasMoreGold(false)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -822,7 +893,7 @@ export default function Admin() {
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                      <span>Load More ({rates.length} loaded)</span>
+                      <span>Load Previous Day ({new Date(new Date(ratesCurrentDate).getTime() - 86400000).toLocaleDateString()})</span>
                     </>
                   )}
                 </button>
@@ -916,7 +987,7 @@ export default function Admin() {
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                      <span>Load More ({goldPrices.length} loaded)</span>
+                      <span>Load Previous Day ({new Date(new Date(goldCurrentDate).getTime() - 86400000).toLocaleDateString()})</span>
                     </>
                   )}
                 </button>
