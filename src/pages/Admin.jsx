@@ -32,6 +32,7 @@ export default function Admin() {
   const [generating, setGenerating] = useState(false)
   const [generateSuccess, setGenerateSuccess] = useState(null)
   const [apiPrices, setApiPrices] = useState({ usd: null, gold: null, loading: false })
+  const [lastDbPrices, setLastDbPrices] = useState({ usd: null, gold: null })
   
   // Filter states
   const [rateFilters, setRateFilters] = useState({
@@ -220,10 +221,42 @@ export default function Admin() {
       
       setRatesPage(1)
       setGoldPage(1)
+      
+      // Fetch last DB prices for comparison
+      await fetchLastDbPrices()
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchLastDbPrices = async () => {
+    try {
+      // Get latest USD rate
+      const { data: usdData } = await supabase
+        .from('exchange_rates')
+        .select('buying_rate, selling_rate')
+        .eq('currency_from', 'USD')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      // Get latest world gold price
+      const { data: goldData } = await supabase
+        .from('gold_prices')
+        .select('price')
+        .eq('gold_type', 'world')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      setLastDbPrices({
+        usd: usdData?.buying_rate || null,
+        gold: goldData?.price || null
+      })
+    } catch (err) {
+      console.error('Error fetching last DB prices:', err)
     }
   }
 
@@ -449,6 +482,24 @@ export default function Admin() {
 
   if (!user) return null
 
+  // Calculate changes for USD and Gold
+  const usdBuyRate = apiPrices.usd ? apiPrices.usd * 1.8887 : null
+  const usdChange = usdBuyRate && lastDbPrices.usd ? usdBuyRate - lastDbPrices.usd : null
+  const goldChange = apiPrices.gold && lastDbPrices.gold ? apiPrices.gold - lastDbPrices.gold : null
+
+  // Format change badge
+  const ChangeBadge = ({ value }) => {
+    if (!value || value === 0) return null
+    const isPositive = value > 0
+    return (
+      <span className={`inline-flex items-center text-xs font-medium ${
+        isPositive ? 'text-emerald-400' : 'text-rose-400'
+      }`}>
+        {isPositive ? '↑' : '↓'} {Math.abs(value).toFixed(2)}
+      </span>
+    )
+  }
+
   return (
     <div className="min-h-screen pb-8">
       {/* Header */}
@@ -534,8 +585,11 @@ export default function Admin() {
             </div>
           ) : apiPrices.usd ? (
             <div>
-              <p className="text-2xl font-bold text-cyan-400 mb-1">{apiPrices.usd.toFixed(8)}</p>
-              <p className="text-xs text-slate-500">
+              <div className="flex items-baseline gap-2 mb-1">
+                <p className="text-2xl font-bold text-cyan-400">{apiPrices.usd.toFixed(8)}</p>
+                <ChangeBadge value={usdChange} />
+              </div>
+              <p className="text-xs text-slate-500 mb-2">
                 {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
               </p>
               <div className="mt-2 pt-2 border-t border-slate-700">
@@ -549,6 +603,11 @@ export default function Admin() {
                   </div>
                 </div>
               </div>
+              {lastDbPrices.usd && (
+                <p className="text-[10px] text-slate-600 mt-2">
+                  Last DB: {lastDbPrices.usd.toFixed(2)} MMK
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-rose-400">Failed to fetch USD rate</p>
@@ -581,14 +640,22 @@ export default function Admin() {
             </div>
           ) : apiPrices.gold ? (
             <div>
-              <p className="text-2xl font-bold text-yellow-400 mb-1">${apiPrices.gold.toFixed(2)}</p>
+              <div className="flex items-baseline gap-2 mb-1">
+                <p className="text-2xl font-bold text-yellow-400">${apiPrices.gold.toFixed(2)}</p>
+                <ChangeBadge value={goldChange} />
+              </div>
               <p className="text-xs text-slate-500 mb-2">Per troy ounce (oz)</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 mb-2">
                 {apiPrices.lastFetched && `Updated: ${new Date(apiPrices.lastFetched).toLocaleTimeString()}`}
               </p>
               <div className="mt-2 pt-2 border-t border-slate-700">
                 <p className="text-xs text-slate-400">Per gram: ${(apiPrices.gold / 31.1035).toFixed(2)}</p>
               </div>
+              {lastDbPrices.gold && (
+                <p className="text-[10px] text-slate-600 mt-2">
+                  Last DB: ${lastDbPrices.gold.toFixed(2)}
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-rose-400">Failed to fetch gold price</p>
