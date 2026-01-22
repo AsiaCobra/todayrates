@@ -33,6 +33,7 @@ export default function Admin() {
   const [generateSuccess, setGenerateSuccess] = useState(null)
   const [apiPrices, setApiPrices] = useState({ usd: null, gold: null, loading: false })
   const [lastDbPrices, setLastDbPrices] = useState({ usd: null, gold: null })
+  const [todayDataExists, setTodayDataExists] = useState({ rates: false, gold: false })
   
   // Filter states
   const [rateFilters, setRateFilters] = useState({
@@ -233,10 +234,12 @@ export default function Admin() {
 
   const fetchLastDbPrices = async () => {
     try {
+      const today = new Date().toISOString().split('T')[0]
+      
       // Get latest USD rate
       const { data: usdData } = await supabase
         .from('exchange_rates')
-        .select('buying_rate, selling_rate')
+        .select('buying_rate, selling_rate, date')
         .eq('currency_from', 'USD')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -245,7 +248,7 @@ export default function Admin() {
       // Get latest world gold price
       const { data: goldData } = await supabase
         .from('gold_prices')
-        .select('price')
+        .select('price, date')
         .eq('gold_type', 'world')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -254,6 +257,12 @@ export default function Admin() {
       setLastDbPrices({
         usd: usdData?.buying_rate || null,
         gold: goldData?.price || null
+      })
+      
+      // Check if today's data exists
+      setTodayDataExists({
+        rates: usdData?.date === today,
+        gold: goldData?.date === today
       })
     } catch (err) {
       console.error('Error fetching last DB prices:', err)
@@ -487,6 +496,10 @@ export default function Admin() {
   const usdChange = usdBuyRate && lastDbPrices.usd ? usdBuyRate - lastDbPrices.usd : null
   const goldChange = apiPrices.gold && lastDbPrices.gold ? apiPrices.gold - lastDbPrices.gold : null
 
+  // Check if generation is needed
+  const hasSignificantChange = (usdChange && Math.abs(usdChange) > 10) || (goldChange && Math.abs(goldChange) > 5)
+  const needsGeneration = !todayDataExists.rates || !todayDataExists.gold || hasSignificantChange
+
   // Format change badge
   const ChangeBadge = ({ value }) => {
     if (!value || value === 0) return null
@@ -568,7 +581,12 @@ export default function Admin() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-cyan-400">USD to MMK (API)</h3>
+              <div>
+                <h3 className="font-semibold text-cyan-400">USD to MMK (API)</h3>
+                {!todayDataExists.rates && (
+                  <p className="text-[10px] text-amber-400">⚠ No data today</p>
+                )}
+              </div>
             </div>
             <button
               onClick={fetchApiPrices}
@@ -623,7 +641,12 @@ export default function Admin() {
                   <circle cx="12" cy="12" r="10" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-yellow-400">World Gold Price (API)</h3>
+              <div>
+                <h3 className="font-semibold text-yellow-400">World Gold Price (API)</h3>
+                {!todayDataExists.gold && (
+                  <p className="text-[10px] text-amber-400">⚠ No data today</p>
+                )}
+              </div>
             </div>
             <button
               onClick={fetchApiPrices}
@@ -662,6 +685,36 @@ export default function Admin() {
           )}
         </div>
       </div>
+
+      {/* Generate Now Notification */}
+      {needsGeneration && !generating && (
+        <div className="glass-card rounded-xl p-4 mb-6 border border-amber-500/50 bg-amber-500/10">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-amber-400 mb-1">Generation Recommended</h4>
+              <div className="text-sm text-slate-300 space-y-1">
+                {!todayDataExists.rates && (
+                  <p>• No exchange rates generated for today</p>
+                )}
+                {!todayDataExists.gold && (
+                  <p>• No gold price generated for today</p>
+                )}
+                {hasSignificantChange && todayDataExists.rates && todayDataExists.gold && (
+                  <p>• Significant price change detected (USD: {usdChange?.toFixed(2)} MMK, Gold: ${goldChange?.toFixed(2)})</p>
+                )}
+                <p className="text-xs text-slate-500 mt-2">
+                  Click "Generate Now" button below to create today's rates
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success */}
       {generateSuccess && (
