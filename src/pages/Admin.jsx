@@ -505,7 +505,7 @@ export default function Admin() {
     }
   }
 
-  const handleMultiRateSubmit = async (date, selectedRates) => {
+  const handleMultiRateSubmit = async (date, selectedRates, createdAt) => {
     try {
       setError(null)
       
@@ -516,6 +516,7 @@ export default function Admin() {
         buying_rate: rate.buying,
         selling_rate: rate.selling,
         date: date,
+        created_at: createdAt,
         updated_by: user.id
       }))
 
@@ -536,7 +537,7 @@ export default function Admin() {
     }
   }
 
-  const handleMultiGoldSubmit = async (date, selectedPrices) => {
+  const handleMultiGoldSubmit = async (date, selectedPrices, createdAt) => {
     try {
       setError(null)
       
@@ -548,6 +549,7 @@ export default function Admin() {
             unit: 'oz',
             price: item.price,
             date: date,
+            created_at: createdAt,
             updated_by: user.id
           }
         } else {
@@ -557,6 +559,7 @@ export default function Admin() {
             buying_price: item.buying,
             selling_price: item.selling,
             date: date,
+            created_at: createdAt,
             updated_by: user.id
           }
         }

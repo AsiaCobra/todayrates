@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import GoldTypeCard from './GoldTypeCard'
 
 const GOLD_TYPES = [
@@ -10,8 +12,7 @@ const GOLD_TYPES = [
 ]
 
 export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrices = null }) {
-  const today = new Date().toISOString().split('T')[0]
-  const [date, setDate] = useState(today)
+  const [selectedDateTime, setSelectedDateTime] = useState(new Date())
   const [prices, setPrices] = useState(() => {
     // Initialize with all gold types unselected and empty or calculated values
     const initialPrices = {}
@@ -127,7 +128,8 @@ export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrices = n
     setSubmitting(true)
     
     try {
-      await onSubmit(date, selectedPrices)
+      const dateStr = selectedDateTime.toISOString().split('T')[0]
+      await onSubmit(dateStr, selectedPrices, selectedDateTime.toISOString())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -142,13 +144,15 @@ export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrices = n
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-700">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            max={today}
-            required
+          <label className="block text-sm font-medium text-slate-300 mb-2">Date & Time</label>
+          <DatePicker
+            selected={selectedDateTime}
+            onChange={(date) => setSelectedDateTime(date)}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={15}
+            dateFormat="MMMM d, yyyy h:mm aa"
+            maxDate={new Date()}
             className="px-3 py-2 rounded-lg text-sm bg-slate-700 border border-slate-600 text-slate-300 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-colors"
           />
         </div>
