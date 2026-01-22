@@ -128,18 +128,58 @@ export const calculateExchangeRates = async () => {
 }
 
 /**
+ * Calculate Myanmar gold prices based on world gold price
+ */
+const calculateMyanmarGoldPrices = (worldGoldPrice, mmkSellRate) => {
+  const settings = getSettings()
+  const multiplier16Old = settings.gold16PeyeOldMultiplier
+  const multiplier16New = settings.gold16PeyeNewMultiplier
+  
+  // Calculate 16 PeYe prices
+  const gold16PeyeOld = (worldGoldPrice / multiplier16Old) * mmkSellRate
+  const gold16PeyeNew = (worldGoldPrice / multiplier16New) * mmkSellRate
+  
+  // Calculate 15 PeYe prices (16 PeYe / 17 * 16)
+  const gold15PeyeOld = (gold16PeyeOld / 17) * 16
+  const gold15PeyeNew = (gold16PeyeNew / 17) * 16
+  
+  return {
+    '16peye_old': Math.round(gold16PeyeOld * 100) / 100,
+    '16peye_new': Math.round(gold16PeyeNew * 100) / 100,
+    '15peye_old': Math.round(gold15PeyeOld * 100) / 100,
+    '15peye_new': Math.round(gold15PeyeNew * 100) / 100
+  }
+}
+
+/**
  * Calculate gold price without inserting to database (for preview/forms)
  */
 export const calculateGoldPrice = async () => {
   try {
     // Fetch gold price from API
-    const goldPrice = await fetchGoldPrice()
+    const worldGoldPrice = await fetchGoldPrice()
     
-    if (!goldPrice) {
+    if (!worldGoldPrice) {
       throw new Error('Failed to fetch gold price')
     }
     
-    return goldPrice
+    // Fetch MMK rates to calculate Myanmar gold prices
+    const rates = await fetchMoneyConvertRates()
+    const usdToMmkRate = rates.MMK
+    if (!usdToMmkRate) {
+      throw new Error('MMK rate not found in API response')
+    }
+    
+    // Calculate Myanmar sell rate
+    const { sellRate: mmkSellRate } = calculateMMKRates(usdToMmkRate)
+    
+    // Calculate Myanmar gold prices
+    const myanmarGoldPrices = calculateMyanmarGoldPrices(worldGoldPrice, mmkSellRate)
+    
+    return {
+      world: worldGoldPrice,
+      ...myanmarGoldPrices
+    }
   } catch (error) {
     console.error('Error calculating gold price:', error)
     throw error
@@ -225,7 +265,7 @@ export const generateExchangeRates = async (userId, date = null) => {
 }
 
 /**
- * Generate world gold price
+ * Generate world gold price and Myanmar gold prices
  */
 export const generateGoldPrice = async (userId, date = null) => {
   try {
@@ -233,30 +273,87 @@ export const generateGoldPrice = async (userId, date = null) => {
     const targetDate = date || new Date().toISOString().split('T')[0]
     
     // Fetch gold price from API
-    const goldPrice = await fetchGoldPrice()
+    const worldGoldPrice = await fetchGoldPrice()
     
-    if (!goldPrice) {
+    if (!worldGoldPrice) {
       throw new Error('Failed to fetch gold price')
     }
     
-    // Insert gold price into database
-    const { data, error } = await supabase
-      .from('gold_prices')
-      .insert({
+    // Fetch MMK rates to calculate Myanmar gold prices
+    const rates = await fetchMoneyConvertRates()
+    const usdToMmkRate = rates.MMK
+    if (!usdToMmkRate) {
+      throw new Error('MMK rate not found in API response')
+    }
+    
+    // Calculate Myanmar sell rate
+    const { sellRate: mmkSellRate } = calculateMMKRates(usdToMmkRate)
+    
+    // Calculate Myanmar gold prices
+    const myanmarGoldPrices = calculateMyanmarGoldPrices(worldGoldPrice, mmkSellRate)
+    
+    // Prepare all gold price records
+    const goldPriceRecords = [
+      {
         gold_type: 'world',
         unit: 'oz',
-        price: roundRate(goldPrice),
+        price: roundRate(worldGoldPrice),
+        buying_price: null,
+        selling_price: null,
         date: targetDate,
         updated_by: userId
-      })
+      },
+      {
+        gold_type: '16peye_old',
+        unit: 'Kyatthar',
+        price: null,
+        buying_price: myanmarGoldPrices['16peye_old'],
+        selling_price: myanmarGoldPrices['16peye_old'],
+        date: targetDate,
+        updated_by: userId
+      },
+      {
+        gold_type: '16peye_new',
+        unit: 'Kyatthar',
+        price: null,
+        buying_price: myanmarGoldPrices['16peye_new'],
+        selling_price: myanmarGoldPrices['16peye_new'],
+        date: targetDate,
+        updated_by: userId
+      },
+      {
+        gold_type: '15peye_old',
+        unit: 'Kyatthar',
+        price: null,
+        buying_price: myanmarGoldPrices['15peye_old'],
+        selling_price: myanmarGoldPrices['15peye_old'],
+        date: targetDate,
+        updated_by: userId
+      },
+      {
+        gold_type: '15peye_new',
+        unit: 'Kyatthar',
+        price: null,
+        buying_price: myanmarGoldPrices['15peye_new'],
+        selling_price: myanmarGoldPrices['15peye_new'],
+        date: targetDate,
+        updated_by: userId
+      }
+    ]
+    
+    // Insert all gold prices into database
+    const { data, error } = await supabase
+      .from('gold_prices')
+      .insert(goldPriceRecords)
       .select()
     
     if (error) throw error
     
     return {
       success: true,
+      count: data.length,
       price: data[0].price,
-      data: data[0]
+      data: data
     }
   } catch (error) {
     console.error('Error generating gold price:', error)

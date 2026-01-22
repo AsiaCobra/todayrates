@@ -7,7 +7,9 @@ const SETTINGS_KEY = 'todayrates_settings'
 // Default settings
 const DEFAULT_SETTINGS = {
   blackMarketBuyMultiplier: 1.8887,
-  blackMarketSellMultiplier: 1.9381
+  blackMarketSellMultiplier: 1.9381,
+  gold16PeyeOldMultiplier: 1.875,
+  gold16PeyeNewMultiplier: 1.905
 }
 
 /**

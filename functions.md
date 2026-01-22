@@ -58,26 +58,41 @@ I want a function to generate daily exchange rates and world gold price automati
 
 here is the logic to calculate exchange rates:
 
-Get MMK Pric (2100.08320023) from: https://cdn.moneyconvert.net/api/latest.json
-Black maret buy multiplier: 1.8887
-Black market sell multiplier: 1.9381
+  Get MMK Pric (2100.08320023) from: https://cdn.moneyconvert.net/api/latest.json
+  Black maret buy multiplier: 1.8887
+  Black market sell multiplier: 1.9381
 
-For USD to MMK rates:
-Buy rates: 2100.08320023 * 1.8887 = 3962.36 MMK
-Sell rates: 2100.08320023 * 1.9381 = 4070.1712503657627 MMK
+  For USD to MMK rates:
+  Buy rates: 2100.08320023 * 1.8887 = 3962.36 MMK
+  Sell rates: 2100.08320023 * 1.9381 = 4070.1712503657627 MMK
 
-For THB to MMK rates:
-get THB (31.4016824) from: https://cdn.moneyconvert.net/api/latest.json
+  For THB to MMK rates:
+  get THB (31.4016824) from: https://cdn.moneyconvert.net/api/latest.json
 
-Buy rates: (Mynamr buy rates) 3962.36 / 31.4016824 = 126.19 MMK
-Sell rates: (Myanmar sell rates) 4070.1712503657627 / 31.4016824 = 129.68 MMK
+  Buy rates: (Mynamr buy rates) 3962.36 / 31.4016824 = 126.19 MMK
+  Sell rates: (Myanmar sell rates) 4070.1712503657627 / 31.4016824 = 129.68 MMK
 
-For EUR to MMK rates:
-get EUR (0.85557888) from: https://cdn.moneyconvert.net/api/latest.json
+  For EUR to MMK rates:
+  get EUR (0.85557888) from: https://cdn.moneyconvert.net/api/latest.json
 
-Buy rates: 3962.36 / 0.85557888 = 4631.96 MMK
-Sell rates: 4070.1712503657627 / 0.85557888 = 4758.76 MMK
+  Buy rates: 3962.36 / 0.85557888 = 4631.96 MMK
+  Sell rates: 4070.1712503657627 / 0.85557888 = 4758.76 MMK
 
 
 For World Gold Price:
-Get World gold price (XAU) from: https://api.gold-api.com/price/XAU
+  Get World gold price (XAU) from: https://api.gold-api.com/price/XAU
+
+myanamr gold price calculation logic:
+  16 PeYe ( old ) multiplier: 1.875
+  16 PeYe ( new ) multiplier: 1.905
+
+  Get USD to MMK sell rates (4070.1712503657627 MMK) 
+  get World gold price (XAU) (4836.399902 USD) from: https://api.gold-api.com/price/XAU
+
+  Myanmar gold price (16 PeYe old) = 4836.399902( world gold ) / 1.875 * 4070.1712503657627 = 10505136.85 MMK 
+
+  Myanmar gold price (16 PeYe new) = 4836.399902( world gold ) / 1.905 * 4070.1712503657627 = 10337745.03 MMK
+
+
+  Myanmar gold price (15 PeYe old) = 10505136.85 / 17 * 16 = 9882492.99 MMK
+  Myanmar gold price (15 PeYe new) = 10337745.03 / 17 * 16 = 9729705.31 MMK

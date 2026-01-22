@@ -40,7 +40,7 @@ export default function Admin() {
   const [lastDbPrices, setLastDbPrices] = useState({ usd: null, gold: null })
   const [todayDataExists, setTodayDataExists] = useState({ rates: false, gold: false })
   const [calculatedRates, setCalculatedRates] = useState(null)
-  const [calculatedGoldPrice, setCalculatedGoldPrice] = useState(null)
+  const [calculatedGoldPrices, setCalculatedGoldPrices] = useState(null)
   const [calculatingRates, setCalculatingRates] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   
@@ -441,13 +441,13 @@ export default function Admin() {
       setCalculatingRates(true)
       setError(null)
       
-      // Calculate gold price from API (returns price directly)
-      const goldPrice = await calculateGoldPrice()
+      // Calculate all gold prices from API (returns object with all prices)
+      const goldPrices = await calculateGoldPrice()
       
-      setCalculatedGoldPrice(goldPrice)
+      setCalculatedGoldPrices(goldPrices)
       setShowMultiGoldForm(true)
     } catch (err) {
-      setError(`Failed to calculate gold price: ${err.message}`)
+      setError(`Failed to calculate gold prices: ${err.message}`)
     } finally {
       setCalculatingRates(false)
     }
@@ -1279,7 +1279,7 @@ export default function Admin() {
         title="Add Multiple Gold Prices"
       >
         <MultiGoldForm
-          calculatedPrice={calculatedGoldPrice}
+          calculatedPrices={calculatedGoldPrices}
           onSubmit={handleMultiGoldSubmit}
           onCancel={() => setShowMultiGoldForm(false)}
         />

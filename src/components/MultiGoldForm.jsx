@@ -9,35 +9,50 @@ const GOLD_TYPES = [
   { type: '15peye_new', name: '15 PeYe (New)', unit: 'Kyatthar' }
 ]
 
-export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrice = null }) {
+export default function MultiGoldForm({ onSubmit, onCancel, calculatedPrices = null }) {
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
   const [prices, setPrices] = useState(() => {
     // Initialize with all gold types unselected and empty or calculated values
     const initialPrices = {}
     GOLD_TYPES.forEach(({ type }) => {
+      const calculated = calculatedPrices?.[type]
       initialPrices[type] = {
         selected: false,
-        price: type === 'world' && calculatedPrice ? calculatedPrice.toFixed(2) : '',
-        buying: '',
-        selling: ''
+        price: type === 'world' && calculated ? calculated.toFixed(2) : '',
+        buying: type !== 'world' && calculated ? calculated.toFixed(2) : '',
+        selling: type !== 'world' && calculated ? calculated.toFixed(2) : ''
       }
     })
     return initialPrices
   })
   
-  // Update world gold price when calculatedPrice changes
+  // Update prices when calculatedPrices changes
   useEffect(() => {
-    if (calculatedPrice) {
-      setPrices(prev => ({
-        ...prev,
-        world: {
-          ...prev.world,
-          price: calculatedPrice.toFixed(2)
-        }
-      }))
+    if (calculatedPrices) {
+      setPrices(prev => {
+        const updated = { ...prev }
+        GOLD_TYPES.forEach(({ type }) => {
+          const calculated = calculatedPrices[type]
+          if (calculated) {
+            if (type === 'world') {
+              updated[type] = {
+                ...updated[type],
+                price: calculated.toFixed(2)
+              }
+            } else {
+              updated[type] = {
+                ...updated[type],
+                buying: calculated.toFixed(2),
+                selling: calculated.toFixed(2)
+              }
+            }
+          }
+        })
+        return updated
+      })
     }
-  }, [calculatedPrice])
+  }, [calculatedPrices])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
