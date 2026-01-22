@@ -1,9 +1,17 @@
 import { supabase } from './supabase'
 import { CURRENCY_ORDER } from './currencies'
+import { getSettings } from './settings'
 
-// Black market multipliers
-const BLACK_MARKET_BUY_MULTIPLIER = 1.8887
-const BLACK_MARKET_SELL_MULTIPLIER = 1.9381
+/**
+ * Get black market multipliers from settings
+ */
+const getMultipliers = () => {
+  const settings = getSettings()
+  return {
+    buyMultiplier: settings.blackMarketBuyMultiplier,
+    sellMultiplier: settings.blackMarketSellMultiplier
+  }
+}
 
 /**
  * Fetch exchange rates from MoneyConvert API
@@ -34,8 +42,9 @@ const fetchGoldPrice = async () => {
  * Calculate MMK buy and sell rates based on USD rate
  */
 const calculateMMKRates = (usdRate) => {
-  const buyRate = usdRate * BLACK_MARKET_BUY_MULTIPLIER
-  const sellRate = usdRate * BLACK_MARKET_SELL_MULTIPLIER
+  const { buyMultiplier, sellMultiplier } = getMultipliers()
+  const buyRate = usdRate * buyMultiplier
+  const sellRate = usdRate * sellMultiplier
   return { buyRate, sellRate }
 }
 

@@ -10,6 +10,7 @@ import GoldTable from '../components/GoldTable'
 import Modal from '../components/Modal'
 import MultiRateForm from '../components/MultiRateForm'
 import MultiGoldForm from '../components/MultiGoldForm'
+import Settings from '../components/Settings'
 import { CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
 import { generateAllRates, generateExchangeRates, generateGoldPrice, calculateExchangeRates, calculateGoldPrice } from '../lib/autoGenerateRates'
 
@@ -754,6 +755,16 @@ export default function Admin() {
         >
           Contacts
         </button>
+        <button
+          onClick={() => { setActiveTab('settings'); setShowRateForm(false); setShowGoldForm(false); }}
+          className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeTab === 'settings'
+              ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30'
+              : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:border-slate-600'
+          }`}
+        >
+          Settings
+        </button>
       </div>
 
       {/* API Prices Display */}
@@ -1217,6 +1228,11 @@ export default function Admin() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <Settings />
           )}
         </>
       )}
