@@ -1,185 +1,345 @@
-# GitHub Pages Deployment Guide
+# Deployment Guide
 
-## ✅ Changes Made for BrowserRouter
+## Overview
 
-### 1. Switched Router
-- Changed from `HashRouter` (URLs with #) to `BrowserRouter` (clean URLs)
-- Old: `myanmarexchangerates.site/#/currency`
-- New: `myanmarexchangerates.site/currency`
+This project supports multiple environments:
+- **Development**: Local development with hot reload
+- **Staging**: Testing environment before production
+- **Production**: Live site for end users
 
-### 2. Added 404.html Workaround
-- GitHub Pages redirects to 404.html for all non-root paths
-- Our 404.html stores the path and redirects to root
-- index.html restores the path using sessionStorage
-- This makes client-side routing work on GitHub Pages
+## Environment Setup
 
-### 3. Updated Sitemap
-- Removed # from all URLs
-- Now uses clean paths: `/currency`, `/gold`, etc.
+### 1. Environment Files
 
-## 📦 How to Deploy
+The project uses environment files to manage configuration:
 
-### Option 1: Using Vite Build + Manual Deploy
+```
+.env               # Local development (gitignored)
+.env.staging       # Staging environment (gitignored)  
+.env.production    # Production environment (gitignored)
+.env.example       # Template for environment variables
+```
 
-1. **Build the project:**
+### 2. Create Staging Supabase Project
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Click "New Project"
+3. Project settings:
+   - **Name**: `todayrates-staging`
+   - **Region**: Same as production (for consistency)
+   - **Database Password**: Strong password (save securely)
+4. Wait for project to be ready (~2 minutes)
+
+### 3. Set Up Staging Database
+
+Once the staging project is created:
+
+1. **Run SQL scripts** in this order (SQL Editor):
+   ```sql
+   -- 1. Create tables and RLS policies
+   -- Run: create-contacts-table.sql
+   
+   -- 2. Create other tables
+   -- Run any other table setup scripts
+   
+   -- 3. Apply security fixes
+   -- Run: fix-contacts-rls.sql
+   ```
+
+2. **Optional: Add test data**
+   ```bash
+   # Update .env.staging with staging credentials
+   # Then run seed script
+   npm run seed
+   ```
+
+### 4. Configure Environment Variables
+
+#### Get Staging Credentials
+
+1. Go to Supabase Dashboard > Your Staging Project
+2. Click **Settings** → **API**
+3. Copy the following:
+   - **Project URL**: `https://xxxxx.supabase.co`
+   - **Anon/Public Key**: `eyJhbGciOiJI...`
+   - **Service Role Key**: `eyJhbGciOiJI...` (keep secret!)
+
+#### Update .env.staging
+
 ```bash
-npm run build
+# Open .env.staging and fill in:
+VITE_SUPABASE_URL=https://your-staging-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_staging_anon_key_here
+
+# Environment indicator
+VITE_APP_ENV=staging
+
+# Optional: For seeding/migrations
+SUPABASE_SERVICE_ROLE_KEY=your_staging_service_role_key
 ```
 
-2. **Copy 404.html to dist:**
+## Building for Different Environments
+
+### Development
 ```bash
-cp public/404.html dist/404.html
+npm run dev
+# Reads .env file
+# Shows "DEVELOPMENT" badge
+# Uses local Supabase project
 ```
 
-3. **Deploy dist folder to GitHub Pages**
-
-### Option 2: Using gh-pages Package (Recommended)
-
-1. **Install gh-pages:**
+### Staging Build
 ```bash
-npm install --save-dev gh-pages
+npm run build:staging
+# Reads .env.staging file
+# Shows "STAGING" badge (yellow)
+# Uses staging Supabase project
 ```
 
-2. **Add to package.json scripts:**
-```json
-{
-  "scripts": {
-    "predeploy": "npm run build && cp public/404.html dist/404.html",
-    "deploy": "gh-pages -d dist"
-  }
-}
-```
-
-3. **Add base path in vite.config.js:**
-```javascript
-export default defineConfig({
-  plugins: [react()],
-  base: '/', // Or '/repository-name/' if not using custom domain
-})
-```
-
-4. **Deploy:**
+### Production Build
 ```bash
+npm run build:production
+# Reads .env.production file
+# No environment badge shown
+# Uses production Supabase project
+```
+
+## Deployment Workflow
+
+### Option 1: Manual Deployment
+
+#### Deploy to Staging
+```bash
+# 1. Build staging version
+npm run build:staging
+
+# 2. Deploy to staging site
+npm run deploy:staging
+```
+
+#### Deploy to Production
+```bash
+# 1. Build production version
+npm run build:production
+
+# 2. Deploy to production
 npm run deploy
 ```
 
-### Option 3: GitHub Actions (Automated)
+### Option 2: Separate Repositories (Recommended)
 
-Create `.github/workflows/deploy.yml`:
+#### Staging Repository
+```bash
+# Create new repo: todayrates-staging
+git clone https://github.com/yourusername/todayrates-staging.git
+cd todayrates-staging
+
+# Copy code from main repo
+# Update .env with staging credentials
+
+# Deploy
+npm run deploy
+```
+
+#### Production Repository
+```bash
+# Main repo: todayrates
+# Deploy normally
+npm run deploy
+```
+
+### Option 3: GitHub Actions (Advanced)
+
+Create `.github/workflows/deploy-staging.yml`:
 
 ```yaml
-name: Deploy to GitHub Pages
+name: Deploy Staging
 
 on:
   push:
-    branches: [ main ]
+    branches: [ staging ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    
     steps:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
           
       - name: Install dependencies
         run: npm ci
         
-      - name: Build
-        run: npm run build
+      - name: Build with staging config
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL_STAGING }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY_STAGING }}
+          VITE_APP_ENV: staging
+        run: npm run build:staging
         
-      - name: Copy 404.html
-        run: cp public/404.html dist/404.html
-        
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+      - name: Deploy to GitHub Pages
+        run: npm run deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## 🔧 GitHub Pages Settings
+## Environment Indicators
 
-1. Go to your repository Settings
-2. Navigate to "Pages" section
-3. Set Source to: `gh-pages` branch (root folder)
-4. Add custom domain: `myanmarexchangerates.site`
-5. Enable "Enforce HTTPS"
+### Visual Badges
 
-## 🌐 Custom Domain Setup
+The app shows environment badges for non-production environments:
 
-### A. Configure DNS (Your Domain Provider)
+- **Development**: Blue badge (top-right)
+- **Staging**: Yellow badge (top-right)
+- **Production**: No badge (clean look)
 
-Add these records:
+### Console Logging
 
-**For Apex Domain (myanmarexchangerates.site):**
+In development mode, the console shows:
 ```
-Type: A
-Name: @
-Value: 185.199.108.153
-       185.199.109.153
-       185.199.110.153
-       185.199.111.153
+🔧 Environment: development
+🔗 Supabase URL: https://xxxxx.supabase.co
 ```
 
-**For WWW Subdomain:**
+## Database Migrations
+
+### Safe Migration Process
+
+1. **Create Migration Script**
+   ```sql
+   -- scripts/migrations/2026-01-22-add-new-field.sql
+   ALTER TABLE exchange_rates ADD COLUMN new_field TEXT;
+   ```
+
+2. **Test in Staging**
+   - Run SQL in staging Supabase project
+   - Test the application thoroughly
+   - Verify data integrity
+
+3. **Apply to Production**
+   - After successful staging test
+   - Run same SQL in production
+   - Monitor for errors
+
+4. **Commit Migration Script**
+   ```bash
+   git add scripts/migrations/
+   git commit -m "Migration: Add new field"
+   ```
+
+### Rollback Plan
+
+Always have a rollback script ready:
+```sql
+-- scripts/migrations/2026-01-22-add-new-field-rollback.sql
+ALTER TABLE exchange_rates DROP COLUMN new_field;
 ```
-Type: CNAME
-Name: www
-Value: YOUR-USERNAME.github.io
+
+## Testing Checklist
+
+### Before Deploying to Staging
+- [ ] All features work in development
+- [ ] No console errors
+- [ ] Build succeeds (`npm run build:staging`)
+- [ ] Environment variables configured
+
+### Before Deploying to Production
+- [ ] All features tested in staging
+- [ ] Database migrations applied
+- [ ] No breaking changes
+- [ ] Environment badge not showing
+- [ ] Performance tested
+- [ ] SEO meta tags correct
+
+## Troubleshooting
+
+### Build Fails
+```bash
+# Check environment variables
+cat .env.staging
+
+# Validate configuration
+npm run dev
+# Check console for config errors
 ```
 
-### B. In GitHub Repository
+### Wrong Environment Showing
+```bash
+# Check .env file has correct VITE_APP_ENV
+# Rebuild:
+npm run build:staging
+# OR
+npm run build:production
+```
 
-1. Go to Settings → Pages
-2. Add custom domain: `myanmarexchangerates.site`
-3. Wait for DNS check (can take 24-48 hours)
-4. Enable "Enforce HTTPS" once verified
+### Database Connection Errors
+```bash
+# Verify Supabase credentials
+# Check .env.staging or .env.production
+# Ensure URL and Keys are correct
+```
 
-## ✅ Verification
+### Deployment Fails
+```bash
+# Clear cache
+rm -rf dist node_modules
+npm install
+npm run build:production
+npm run deploy
+```
 
-After deployment, test these URLs:
-- ✅ `https://myanmarexchangerates.site/`
-- ✅ `https://myanmarexchangerates.site/currency`
-- ✅ `https://myanmarexchangerates.site/gold`
-- ✅ `https://myanmarexchangerates.site/about`
+## Security Best Practices
 
-All should work without 404 errors!
+### ✅ DO
+- Keep service role keys secret
+- Use separate databases for staging/production
+- Never commit `.env` files
+- Test migrations in staging first
+- Use strong database passwords
+- Enable RLS policies
+- Validate user inputs
 
-## 🐛 Troubleshooting
+### ❌ DON'T
+- Don't use production data in staging
+- Don't share service role keys
+- Don't skip testing in staging
+- Don't auto-migrate production
+- Don't commit sensitive credentials
 
-### Issue: 404 on page refresh
-**Solution:** Make sure 404.html is copied to dist folder
+## Quick Commands Reference
 
-### Issue: Blank page after deployment
-**Check:**
-1. Base path in vite.config.js
-2. Console for errors
-3. Build succeeded without errors
+```bash
+# Development
+npm run dev                    # Start dev server
 
-### Issue: Routes not working
-**Check:**
-1. 404.html exists in deployed folder
-2. index.html has redirect script
-3. Using BrowserRouter (not HashRouter)
+# Building
+npm run build                  # Default build
+npm run build:staging          # Build for staging
+npm run build:production       # Build for production
 
-### Issue: Custom domain not working
-**Wait:** DNS propagation can take 24-48 hours
-**Check:** DNS records are correct
-**Verify:** GitHub shows green checkmark on domain
+# Deployment
+npm run deploy                 # Deploy production
+npm run deploy:staging         # Deploy staging
 
-## 📊 SEO Benefits of BrowserRouter
+# Database
+npm run migrate                # Run migrations
+npm run seed                   # Seed database
+npm run db:setup              # Setup everything
+```
 
-✅ **Clean URLs:** `/currency` instead of `/#/currency`
-✅ **Better indexing:** Search engines prefer clean URLs
-✅ **Shareable links:** More professional looking
-✅ **Analytics:** Easier to track page views
-✅ **User experience:** URLs match browser history
+## Support
 
-## 🎉 You're Done!
+For issues or questions:
+- Check console for error messages
+- Verify environment configuration
+- Review Supabase dashboard logs
+- Check GitHub Actions logs (if using CI/CD)
 
-Your site now uses proper routing and is ready for production with better SEO!
+## Environment URLs
+
+- **Production**: https://asiacobra.github.io/todayrates/
+- **Staging**: https://asiacobra.github.io/todayrates-staging/ (if separate repo)
+- **Local**: http://localhost:5173

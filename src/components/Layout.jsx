@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import BottomNav from './BottomNav'
 import Footer from './Footer'
+import EnvironmentBadge from './EnvironmentBadge'
 
 export default function Layout({ children }) {
   const { user } = useAuth()
@@ -25,6 +26,9 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen">
+      {/* Environment Badge */}
+      <EnvironmentBadge />
+      
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/50">
         <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4">
