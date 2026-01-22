@@ -8,6 +8,8 @@ import RateTable from '../components/RateTable'
 import GoldForm from '../components/GoldForm'
 import GoldTable from '../components/GoldTable'
 import Modal from '../components/Modal'
+import MultiRateForm from '../components/MultiRateForm'
+import MultiGoldForm from '../components/MultiGoldForm'
 import { CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
 import { generateAllRates, generateExchangeRates, generateGoldPrice } from '../lib/autoGenerateRates'
 
@@ -23,6 +25,8 @@ export default function Admin() {
   const [editingGold, setEditingGold] = useState(null)
   const [showRateForm, setShowRateForm] = useState(false)
   const [showGoldForm, setShowGoldForm] = useState(false)
+  const [showMultiRateForm, setShowMultiRateForm] = useState(false)
+  const [showMultiGoldForm, setShowMultiGoldForm] = useState(false)
   const [showRateFilters, setShowRateFilters] = useState(false)
   const [showGoldFilters, setShowGoldFilters] = useState(false)
   const [hasMoreRates, setHasMoreRates] = useState(false)
@@ -462,6 +466,80 @@ export default function Admin() {
     }
   }
 
+  const handleMultiRateSubmit = async (date, selectedRates) => {
+    try {
+      setError(null)
+      
+      // Prepare data for insertion
+      const ratesData = selectedRates.map(rate => ({
+        currency_from: rate.code,
+        currency_to: 'MMK',
+        buying_rate: rate.buying,
+        selling_rate: rate.selling,
+        date: date,
+        updated_by: user.id
+      }))
+
+      const { error } = await supabase
+        .from('exchange_rates')
+        .insert(ratesData)
+
+      if (error) throw error
+
+      setGenerateSuccess(`Successfully added ${selectedRates.length} exchange rates!`)
+      setShowMultiRateForm(false)
+      fetchData()
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setGenerateSuccess(null), 5000)
+    } catch (err) {
+      throw new Error(err.message)
+    }
+  }
+
+  const handleMultiGoldSubmit = async (date, selectedPrices) => {
+    try {
+      setError(null)
+      
+      // Prepare data for insertion
+      const pricesData = selectedPrices.map(item => {
+        if (item.type === 'world') {
+          return {
+            gold_type: item.type,
+            unit: 'oz',
+            price: item.price,
+            date: date,
+            updated_by: user.id
+          }
+        } else {
+          return {
+            gold_type: item.type,
+            unit: 'Kyatthar',
+            buying_price: item.buying,
+            selling_price: item.selling,
+            date: date,
+            updated_by: user.id
+          }
+        }
+      })
+
+      const { error } = await supabase
+        .from('gold_prices')
+        .insert(pricesData)
+
+      if (error) throw error
+
+      setGenerateSuccess(`Successfully added ${selectedPrices.length} gold prices!`)
+      setShowMultiGoldForm(false)
+      fetchData()
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setGenerateSuccess(null), 5000)
+    } catch (err) {
+      throw new Error(err.message)
+    }
+  }
+
   const handleContactDelete = async (id) => {
     if (!window.confirm('Delete this contact message?')) return
     try {
@@ -842,20 +920,30 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => { setEditingRate(null); setShowRateForm(true); }}
-                  className="flex-1 py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Exchange Rate
+                  Add Single Rate
+                </button>
+                
+                <button
+                  onClick={() => setShowMultiRateForm(true)}
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                  Add Multiple Rates
                 </button>
                 
                 <button
                   onClick={() => setShowRateFilters(true)}
-                  className="py-3 px-4 rounded-xl font-medium text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 relative"
+                  className="col-span-2 py-3 px-4 rounded-xl font-medium text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 relative"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -935,20 +1023,30 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => { setEditingGold(null); setShowGoldForm(true); }}
-                  className="flex-1 py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-900 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-900 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Gold Price
+                  Add Single Price
+                </button>
+                
+                <button
+                  onClick={() => setShowMultiGoldForm(true)}
+                  className="py-3 px-4 rounded-xl font-medium text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                  Add Multiple Prices
                 </button>
                 
                 <button
                   onClick={() => setShowGoldFilters(true)}
-                  className="py-3 px-4 rounded-xl font-medium text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 relative"
+                  className="col-span-2 py-3 px-4 rounded-xl font-medium text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 relative"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -1089,6 +1187,30 @@ export default function Admin() {
           gold={editingGold}
           onSubmit={handleGoldSubmit}
           onCancel={() => { setShowGoldForm(false); setEditingGold(null); }}
+        />
+      </Modal>
+
+      {/* Multi-Rate Modal */}
+      <Modal
+        isOpen={showMultiRateForm}
+        onClose={() => setShowMultiRateForm(false)}
+        title="Add Multiple Exchange Rates"
+      >
+        <MultiRateForm
+          onSubmit={handleMultiRateSubmit}
+          onCancel={() => setShowMultiRateForm(false)}
+        />
+      </Modal>
+
+      {/* Multi-Gold Modal */}
+      <Modal
+        isOpen={showMultiGoldForm}
+        onClose={() => setShowMultiGoldForm(false)}
+        title="Add Multiple Gold Prices"
+      >
+        <MultiGoldForm
+          onSubmit={handleMultiGoldSubmit}
+          onCancel={() => setShowMultiGoldForm(false)}
         />
       </Modal>
       
