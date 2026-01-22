@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Select from 'react-select'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 
@@ -12,6 +13,15 @@ export default function GoldForm({ gold, onSubmit, onCancel }) {
   })
   const [selectedDateTime, setSelectedDateTime] = useState(new Date())
   const [loading, setLoading] = useState(false)
+
+  // Gold type options for React Select
+  const goldTypeOptions = [
+    { value: 'world', label: '🌍 World Gold' },
+    { value: '16peye_old', label: '16 PeYe (Old)' },
+    { value: '15peye_old', label: '15 PeYe (Old)' },
+    { value: '16peye_new', label: '16 PeYe (New)' },
+    { value: '15peye_new', label: '15 PeYe (New)' }
+  ]
 
   useEffect(() => {
     if (gold) {
@@ -29,12 +39,13 @@ export default function GoldForm({ gold, onSubmit, onCancel }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    if (name === 'gold_type') {
-      const unit = value === 'world' ? 'oz' : 'kyattha'
-      setFormData((prev) => ({ ...prev, [name]: value, unit }))
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleGoldTypeChange = (selectedOption) => {
+    const goldType = selectedOption.value
+    const unit = goldType === 'world' ? 'oz' : 'Kyatthar'
+    setFormData((prev) => ({ ...prev, gold_type: goldType, unit }))
   }
 
   const handleSubmit = async (e) => {
@@ -60,18 +71,61 @@ export default function GoldForm({ gold, onSubmit, onCancel }) {
   const inputClass = "w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none transition-colors"
   const labelClass = "block text-sm font-medium text-slate-300 mb-2"
 
+  // React Select styles
+  const selectStyles = {
+    control: (base, state) => ({
+      ...base,
+      backgroundColor: '#1e293b80',
+      borderColor: state.isFocused ? '#eab30880' : '#334155',
+      borderRadius: '0.75rem',
+      padding: '0.5rem',
+      boxShadow: state.isFocused ? '0 0 0 1px #eab30880' : 'none',
+      '&:hover': {
+        borderColor: '#eab30880'
+      }
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: '#1e293b',
+      borderRadius: '0.5rem',
+      border: '1px solid #334155'
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused ? '#334155' : '#1e293b',
+      color: '#e2e8f0',
+      cursor: 'pointer',
+      '&:active': {
+        backgroundColor: '#475569'
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: '#e2e8f0'
+    }),
+    input: (base) => ({
+      ...base,
+      color: '#e2e8f0'
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#64748b'
+    })
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="gold_type" className={labelClass}>Gold Type</label>
-          <select id="gold_type" name="gold_type" value={formData.gold_type} onChange={handleChange} className={inputClass}>
-            <option value="world">World Gold</option>
-            <option value="16pae_old">16 Pae (Old)</option>
-            <option value="15pae_old">15 Pae (Old)</option>
-            <option value="16pae_new">16 Pae (New)</option>
-            <option value="15pae_new">15 Pae (New)</option>
-          </select>
+          <label className={labelClass}>Gold Type</label>
+          <Select
+            value={goldTypeOptions.find(opt => opt.value === formData.gold_type)}
+            onChange={handleGoldTypeChange}
+            options={goldTypeOptions}
+            styles={selectStyles}
+            isSearchable
+            placeholder="Select gold type"
+          />
         </div>
         <div>
           <label htmlFor="unit" className={labelClass}>Unit</label>

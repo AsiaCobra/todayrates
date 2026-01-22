@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import Select from 'react-select'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { CURRENCIES, CURRENCY_ORDER } from '../lib/currencies'
+import { CURRENCIES, CURRENCY_ORDER, getCurrencyMeta } from '../lib/currencies'
 
 export default function RateForm({ rate, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
@@ -12,6 +13,15 @@ export default function RateForm({ rate, onSubmit, onCancel }) {
   })
   const [selectedDateTime, setSelectedDateTime] = useState(new Date())
   const [loading, setLoading] = useState(false)
+
+  // Prepare currency options for React Select
+  const currencyOptions = CURRENCY_ORDER.map(code => {
+    const meta = getCurrencyMeta(code)
+    return {
+      value: code,
+      label: `${meta.flag} ${code} - ${meta.name}`
+    }
+  })
 
   useEffect(() => {
     if (rate) {
@@ -29,6 +39,10 @@ export default function RateForm({ rate, onSubmit, onCancel }) {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleCurrencyChange = (selectedOption) => {
+    setFormData((prev) => ({ ...prev, currency_from: selectedOption.value }))
   }
 
   const handleSubmit = async (e) => {
@@ -52,18 +66,61 @@ export default function RateForm({ rate, onSubmit, onCancel }) {
   const inputClass = "w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none transition-colors"
   const labelClass = "block text-sm font-medium text-slate-300 mb-2"
 
+  // React Select styles
+  const selectStyles = {
+    control: (base, state) => ({
+      ...base,
+      backgroundColor: '#1e293b80',
+      borderColor: state.isFocused ? '#eab30880' : '#334155',
+      borderRadius: '0.75rem',
+      padding: '0.5rem',
+      boxShadow: state.isFocused ? '0 0 0 1px #eab30880' : 'none',
+      '&:hover': {
+        borderColor: '#eab30880'
+      }
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: '#1e293b',
+      borderRadius: '0.5rem',
+      border: '1px solid #334155'
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isFocused ? '#334155' : '#1e293b',
+      color: '#e2e8f0',
+      cursor: 'pointer',
+      '&:active': {
+        backgroundColor: '#475569'
+      }
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: '#e2e8f0'
+    }),
+    input: (base) => ({
+      ...base,
+      color: '#e2e8f0'
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#64748b'
+    })
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="currency_from" className={labelClass}>Currency</label>
-          <select id="currency_from" name="currency_from" value={formData.currency_from} onChange={handleChange} className={inputClass}>
-            {CURRENCY_ORDER.map(code => (
-              <option key={code} value={code}>
-                {code} - {CURRENCIES[code].name}
-              </option>
-            ))}
-          </select>
+          <label className={labelClass}>Currency</label>
+          <Select
+            value={currencyOptions.find(opt => opt.value === formData.currency_from)}
+            onChange={handleCurrencyChange}
+            options={currencyOptions}
+            styles={selectStyles}
+            isSearchable
+            placeholder="Select currency"
+          />
         </div>
         <div>
           <label htmlFor="currency_to" className={labelClass}>To</label>
