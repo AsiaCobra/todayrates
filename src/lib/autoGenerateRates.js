@@ -159,6 +159,7 @@ export const generateGoldPrice = async (userId, date = null) => {
       .from('gold_prices')
       .insert({
         gold_type: 'world',
+        unit: 'oz',
         price: roundRate(goldPrice),
         date: targetDate,
         updated_by: userId
