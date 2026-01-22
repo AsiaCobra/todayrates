@@ -75,15 +75,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">Settings</h2>
-        <p className="text-sm text-slate-400">
-          Configure black market multipliers for exchange rate calculations
-        </p>
-      </div>
-
+    <div className="space-y-4">
       {/* Success Message */}
       {saveSuccess && (
         <div className="glass-card rounded-xl p-4 border border-emerald-500/30 bg-emerald-500/10">
@@ -98,8 +90,8 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Settings Card */}
-      <div className="glass-card rounded-xl p-6 space-y-6">
+      {/* Settings Content */}
+      <div className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
