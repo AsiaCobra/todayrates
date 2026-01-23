@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import Layout from './components/Layout'
@@ -15,12 +16,29 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import Contact from './pages/Contact'
 import About from './pages/About'
+import NotFound from './pages/NotFound'
+
+// Component to handle 404 redirect from sessionStorage
+function RedirectHandler() {
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    const redirect = sessionStorage.getItem('redirect')
+    if (redirect) {
+      sessionStorage.removeItem('redirect')
+      navigate(redirect, { replace: true })
+    }
+  }, [navigate])
+  
+  return null
+}
 
 function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
         <Router>
+          <RedirectHandler />
           <ScrollToTop />
           <Layout>
             <Routes>
@@ -37,6 +55,7 @@ function App() {
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/about" element={<About />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
         </Router>
