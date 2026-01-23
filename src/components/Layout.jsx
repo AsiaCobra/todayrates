@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import BottomNav from './BottomNav'
 import Footer from './Footer'
 import EnvironmentBadge from './EnvironmentBadge'
+// import AdSense from './AdSense' // Uncomment when you have ad slot IDs
 
 export default function Layout({ children }) {
   const { user } = useAuth()
@@ -73,12 +74,28 @@ export default function Layout({ children }) {
         </div>
       </header>
 
+      {/* Top Ad - Below Header (uncomment when you have slot ID)
+      {!isAdminPage && location.pathname !== '/login' && (
+        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 pt-4">
+          <AdSense slot="YOUR_TOP_AD_SLOT_ID" format="horizontal" className="mb-2" />
+        </div>
+      )}
+      */}
+
       {/* Main Content */}
       <main className="pb-safe">
         <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 py-6">
           {children}
         </div>
       </main>
+
+      {/* Bottom Ad - Above Footer (uncomment when you have slot ID)
+      {!isAdminPage && location.pathname !== '/login' && (
+        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 pb-4">
+          <AdSense slot="YOUR_BOTTOM_AD_SLOT_ID" format="horizontal" className="mt-2" />
+        </div>
+      )}
+      */}
 
       {/* Footer */}
       <Footer />
