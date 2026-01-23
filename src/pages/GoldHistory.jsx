@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
-// Format number
-const formatNumber = (num, decimals = 0) => {
-  if (!num) return '0'
+// Format number with 2 decimal places
+const formatNumber = (num, decimals = 2) => {
+  if (!num) return '0.00'
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

@@ -24,9 +24,9 @@ export default function RateTable({ rates, onEdit, onDelete, isAdmin = false }) 
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm">
-                <span className="text-emerald-400">{Number(rate.buying_rate).toLocaleString()}</span>
+                <span className="text-emerald-400">{Number(rate.buying_rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <span className="text-slate-600 mx-1">/</span>
-                <span className="text-rose-400">{Number(rate.selling_rate).toLocaleString()}</span>
+                <span className="text-rose-400">{Number(rate.selling_rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </p>
               <p className="text-xs text-slate-500">Buy / Sell</p>
             </div>

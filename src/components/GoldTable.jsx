@@ -39,9 +39,9 @@ export default function GoldTable({ goldPrices, onEdit, onDelete, isAdmin = fals
               ) : (
                 <>
                   <p className="text-sm">
-                    <span className="text-emerald-400">{Number(gold.buying_price).toLocaleString()}</span>
+                    <span className="text-emerald-400">{Number(gold.buying_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-slate-600 mx-1">/</span>
-                    <span className="text-rose-400">{Number(gold.selling_price).toLocaleString()}</span>
+                    <span className="text-rose-400">{Number(gold.selling_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </p>
                   <p className="text-xs text-slate-500">Buy / Sell</p>
                 </>

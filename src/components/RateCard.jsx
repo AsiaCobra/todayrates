@@ -22,13 +22,13 @@ export default function RateCard({ currency, buyingRate, sellingRate }) {
         <div className="bg-green-50 rounded-lg p-3">
           <p className="text-xs font-medium text-green-600 mb-1">Buy</p>
           <p className="text-xl font-bold text-green-700">
-            {Number(buyingRate).toLocaleString()}
+            {Number(buyingRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div className="bg-red-50 rounded-lg p-3">
           <p className="text-xs font-medium text-red-600 mb-1">Sell</p>
           <p className="text-xl font-bold text-red-700">
-            {Number(sellingRate).toLocaleString()}
+            {Number(sellingRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>

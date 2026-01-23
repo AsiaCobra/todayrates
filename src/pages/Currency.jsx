@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase'
 import { getCurrencyMeta, CURRENCY_ORDER } from '../lib/currencies'
 import SEO from '../components/SEO'
 
-// Format number
-const formatNumber = (num, decimals = 0) => {
-  if (!num) return '0'
+// Format number with 2 decimal places
+const formatNumber = (num, decimals = 2) => {
+  if (!num) return '0.00'
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -79,14 +79,14 @@ const CurrencyCard = ({ code, ratesData }) => {
               <div>
                 <p className="text-xs text-slate-500 mb-1">Buy</p>
                 <p className="text-base font-semibold tabular-nums text-emerald-400">
-                  {formatNumber(rate.buying_rate, rate.buying_rate < 100 ? 2 : 0)}
+                  {formatNumber(rate.buying_rate)}
                 </p>
                 {index === 0 && <ChangeBadge value={rate.buyChange} />}
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Sell</p>
                 <p className="text-base font-semibold tabular-nums text-rose-400">
-                  {formatNumber(rate.selling_rate, rate.selling_rate < 100 ? 2 : 0)}
+                  {formatNumber(rate.selling_rate)}
                 </p>
                 {index === 0 && <ChangeBadge value={rate.sellChange} />}
               </div>

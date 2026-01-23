@@ -72,13 +72,13 @@ export default function GoldCard({ goldType, unit, price, buyingPrice, sellingPr
         <div className="bg-green-50/80 rounded-lg p-3 border border-green-100">
           <p className="text-xs font-medium text-green-600 mb-1">ဝယ်ဈေး (Buy)</p>
           <p className="text-xl font-bold text-green-700">
-            {Number(buyingPrice).toLocaleString()}
+            {Number(buyingPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div className="bg-red-50/80 rounded-lg p-3 border border-red-100">
           <p className="text-xs font-medium text-red-600 mb-1">ရောင်းဈေး (Sell)</p>
           <p className="text-xl font-bold text-red-700">
-            {Number(sellingPrice).toLocaleString()}
+            {Number(sellingPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>

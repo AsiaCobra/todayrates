@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase'
 import { getCurrencyMeta } from '../lib/currencies'
 import SEO from '../components/SEO'
 
-// Format number with commas
-const formatNumber = (num, decimals = 0) => {
-  if (!num) return '0'
+// Format number with commas and 2 decimal places
+const formatNumber = (num, decimals = 2) => {
+  if (!num) return '0.00'
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
