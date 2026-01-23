@@ -96,3 +96,15 @@ myanamr gold price calculation logic:
 
   Myanmar gold price (15 PeYe old) = 10505136.85 / 17 * 16 = 9882492.99 MMK
   Myanmar gold price (15 PeYe new) = 10337745.03 / 17 * 16 = 9729705.31 MMK
+
+
+  Calculate again with buy rates:
+  Get USD to MMK buy rates (3962.36 MMK)
+  get World gold price (XAU) (4836.399902 USD) from: https://api.gold-api.com/price/XAU
+
+  Myanmar gold price (16 PeYe old) = 4836.399902( world gold ) / 1.875 * 3962.36 = 10230336.85 MMK
+
+  Myanmar gold price (16 PeYe new) = 4836.399902( world gold ) / 1.905 * 3962.36 = 10070745.03 MMK
+
+  Myanmar gold price (15 PeYe old) = 10230336.85 / 17 * 16 = 9624329.99 MMK
+  Myanmar gold price (15 PeYe new) = 10070745.03 / 17 * 16 = 9474985.31 MMK
